@@ -289,7 +289,7 @@ class instance extends instance_skel {
 				this.checkFeedbacks('music_visibility')
 				break
 			case 'activeBreakScene':
-				this.checkFeedbacks('main_scene_visibility')
+				this.checkFeedbacks('break_scene_visibility')
 				break
 		}
 	}
@@ -396,10 +396,10 @@ class instance extends instance_skel {
 			},
 		}
 
-		feedbacks['main_scene_visibility'] = {
+		feedbacks['break_scene_visibility'] = {
 			type: 'boolean',
-			label: 'Main Scene Visibility',
-			description: 'Change background colour when selected main scene is visible.',
+			label: 'Break Scene Visibility',
+			description: 'Change background colour when selected break scene is visible.',
 			style: {
 				bgcolor: self.rgb(0, 255, 0),
 			},
