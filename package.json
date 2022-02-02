@@ -1,32 +1,40 @@
 {
-  "name": "ipl-ocp",
-  "version": "1.0.0",
-  "api_version": "1.0.0",
-  "manufacturer": "Inkling Performance Labs",
-  "product": "Overlay Control Panel",
-  "keywords": [
-    "ipl",
-    "ocp",
-    "Inkling Performance Labs",
-    "Overlay Control Panel"
-  ],
-  "shortname": "ocp",
-  "description": "Module to control IPL OCP",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "author": "Vincent Lee <vlee@iplabs.ink>",
-  "contributors": [
-    "Inkfarer <inkfarer@iplabs.ink>"
-  ],
-  "license": "MIT",
-  "dependencies": {
-    "colord": "^2.9.2",
-    "luxon": "^2.3.0",
-    "socket.io-client": "^2.4.0"
-  },
-  "devDependencies": {
-    "prettier": "2.5.1"
-  }
+	"name": "ipl-ocp",
+	"version": "1.0.0",
+	"api_version": "1.0.0",
+	"manufacturer": "Inkling Performance Labs",
+	"product": "Overlay Control Panel",
+	"keywords": [
+		"ipl",
+		"ocp",
+		"Inkling Performance Labs",
+		"Overlay Control Panel"
+	],
+	"shortname": "ocp",
+	"description": "Module to control IPL OCP",
+	"main": "index.js",
+	"scripts": {
+		"test": "echo \"Error: no test specified\" && exit 1"
+	},
+	"author": "Vincent Lee <vlee@iplabs.ink>",
+	"contributors": [
+		"Inkfarer <inkfarer@iplabs.ink>"
+	],
+	"license": "MIT",
+	"dependencies": {
+		"colord": "^2.9.2",
+		"luxon": "^2.3.0",
+		"socket.io-client": "^2.4.0"
+	},
+	"devDependencies": {
+		"prettier": "2.5.1"
+	},
+	"homepage": "https://github.com/bitfocus/companion-module-ipl-ocp#readme",
+	"bugs": {
+		"url": "https://github.com/bitfocus/companion-module-ipl-ocp/issues"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/bitfocus/companion-module-ipl-ocp.git"
+	}
 }
