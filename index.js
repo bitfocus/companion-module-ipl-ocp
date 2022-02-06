@@ -104,7 +104,7 @@ class instance extends instance_skel {
 				label: 'Target host',
 				tooltip: 'The host of the NodeCG instance running IPL OCP',
 				width: 6,
-				default: "localhost"
+				default: 'localhost',
 			},
 			{
 				type: 'textinput',
@@ -113,7 +113,7 @@ class instance extends instance_skel {
 				tooltip: 'The port of the NodeCG instance running IPL OCP',
 				width: 6,
 				regex: this.REGEX_NUMBER,
-				default: 9090
+				default: 9090,
 			},
 		]
 	}
@@ -163,7 +163,7 @@ class instance extends instance_skel {
 
 		// On error
 		this.socket.on('error', (data) => {
-			this.log(this.STATUS_ERROR, `Socket.io error: ${data}`)
+			this.log('error', `Socket.io error: ${data}`)
 		})
 
 		// When a new value assignment happens
@@ -177,7 +177,7 @@ class instance extends instance_skel {
 
 		this.socket.on('disconnected', (data) => {
 			this.log('debug', `Connection closed due to ${data}`)
-			this.status(this.STATUS_ERROR, `Connection closed due to ${data}`)
+			this.status('error', `Connection closed due to ${data}`)
 		})
 	}
 
@@ -221,11 +221,19 @@ class instance extends instance_skel {
 	 * @param data data
 	 */
 	sendSocketMessage(messageName, data) {
-		this.socket.emit('message', {
-			bundleName: 'ipl-overlay-controls',
-			messageName: messageName,
-			content: data,
-		})
+		this.socket.emit(
+			'message',
+			{
+				bundleName: 'ipl-overlay-controls',
+				messageName: messageName,
+				content: data,
+			},
+			(response) => {
+				if (response.name === 'Error') {
+					this.log('error', `Message Error ${response.message}`)
+				}
+			}
+		)
 	}
 
 	/**
