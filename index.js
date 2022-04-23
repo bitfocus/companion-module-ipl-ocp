@@ -12,6 +12,7 @@ const replicantNames = [
 	'activeBreakScene',
 	'musicShown',
 	'nextRoundStartTime',
+	'nextRound'
 ]
 
 /**
@@ -229,8 +230,10 @@ class instance extends instance_skel {
 				content: data,
 			},
 			(response) => {
-				if (response.name === 'Error') {
-					this.log('error', `Message Error ${response.message}`)
+				if(response != null){
+					if (response.name === 'Error') {
+						this.log('error', `Message Error ${response.message}`)
+					}
 				}
 			}
 		)
@@ -298,6 +301,9 @@ class instance extends instance_skel {
 				break
 			case 'activeBreakScene':
 				this.checkFeedbacks('break_scene_visibility')
+				break
+			case 'nextRound':
+				this.checkFeedbacks('show_next_match_on_stream')
 				break
 		}
 	}
@@ -403,6 +409,21 @@ class instance extends instance_skel {
 				}
 			},
 		}
+
+		feedbacks['show_next_match_on_stream'] = {
+			type: 'boolean',
+			label: 'Next Match Visibility',
+			description: 'Change background colour when Next match is on stream.',
+			style: {
+				bgcolor: self.rgb(0, 255, 0),
+			},
+			callback: function (feedback) {
+				if (!isEmpty(self.replicants['nextRound'])) {
+					return self.replicants['nextRound'].showOnStream
+				}
+			},
+		}
+
 
 		feedbacks['break_scene_visibility'] = {
 			type: 'boolean',
@@ -678,6 +699,47 @@ class instance extends instance_skel {
 								args: {
 									prop: 'isVisible',
 									newValue: !this.replicants['nextRoundStartTime'].isVisible,
+								},
+							},
+						])
+					}
+				},
+			},
+			next_on_stream_visibility: {
+				label: 'Show/Hide/Toggle Show next match on stream',
+				options: [
+					{
+						type: 'dropdown',
+						label: 'Change',
+						id: 'change',
+						default: 'toggle',
+						choices: [
+							{ id: 'hide', label: 'Hide Next Match' },
+							{ id: 'show', label: 'Show Next Match' },
+							{ id: 'toggle', label: 'Toggle Next Match' },
+						],
+					},
+				],
+				callback: (action) => {
+					if (action.options.change === 'hide' || action.options.change === 'show') {
+						this.sendSocketReplicantProposeOperations('nextRound', [
+							{
+								path: '/',
+								method: 'update',
+								args: {
+									prop: 'showOnStream',
+									newValue: action.options.change === 'show',
+								},
+							},
+						])
+					} else {
+						this.sendSocketReplicantProposeOperations('nextRound', [
+							{
+								path: '/',
+								method: 'update',
+								args: {
+									prop: 'showOnStream',
+									newValue: !this.replicants['nextRound'].showOnStream,
 								},
 							},
 						])
