@@ -308,27 +308,6 @@ class instance extends instance_skel {
 		}
 	}
 
-	/**
-	 * Get next colour
-	 * @param indexMovement index to change by
-	 * @return {Object} object with colour data
-	 */
-	getColourData(indexMovement) {
-		const categoryName = this.replicants['activeRound']['activeColor'].categoryName
-		const selectedIndex = this.replicants['activeRound']['activeColor'].index
-		const indexChange = selectedIndex + indexMovement
-		if (['Ranked Modes', 'Turf War'].includes(categoryName)) {
-			const colors = colourMap[categoryName]
-			return {
-				color: colors.find(color =>
-					color.index === (indexChange >= colors.length ? 0 : (indexChange < 0 ? colors.length - 1 : indexChange))),
-				categoryName
-			}
-		}
-
-		return null
-	}
-
 	initFeedbacks() {
 		let feedbacks = {}
 		let self = this
@@ -528,17 +507,10 @@ class instance extends instance_skel {
 					},
 				],
 				callback: (action) => {
-					let movement = null
 					if (action.options.direction === 'next') {
-						movement = 1
+						this.sendSocketMessage('switchToNextColor')
 					} else if (action.options.direction === 'previous') {
-						movement = -1
-					}
-					if (movement) {
-						const data = this.getColourData(movement)
-						if (data) {
-							this.sendSocketMessage('setActiveColor', data)
-						}
+						this.sendSocketMessage('switchToPreviousColor')
 					}
 				},
 			},
