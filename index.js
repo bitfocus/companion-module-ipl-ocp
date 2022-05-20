@@ -1,7 +1,7 @@
 let instance_skel = require('../../instance_skel')
 const socketIo = require('socket.io-client')
 const { colord } = require('colord')
-const colourHelper = require('./data/color.json')
+const colourMap = require('./data/color.json')
 const { DateTime } = require('luxon')
 
 // Names of replicants we want to store locally for use
@@ -314,26 +314,19 @@ class instance extends instance_skel {
 	 * @return {Object} object with colour data
 	 */
 	getColourData(indexMovement) {
-		let newIndex = this.replicants['activeRound']['activeColor'].index + indexMovement
-		if (newIndex > 6) {
-			newIndex = 0
-		} else if (newIndex < 0) {
-			newIndex = 6
+		const categoryName = this.replicants['activeRound']['activeColor'].categoryName
+		const selectedIndex = this.replicants['activeRound']['activeColor'].index
+		const indexChange = selectedIndex + indexMovement
+		if (['Ranked Modes', 'Turf War'].includes(categoryName)) {
+			const colors = colourMap[categoryName]
+			return {
+				color: colors.find(color =>
+					color.index === (indexChange >= colors.length ? 0 : (indexChange < 0 ? colors.length - 1 : indexChange))),
+				categoryName
+			}
 		}
 
-		const category = this.replicants['activeRound']['activeColor'].categoryName
-		let return_value = null
-		if (['Ranked Modes', 'Turf War'].includes(category)) {
-			colourHelper[category].forEach((data) => {
-				if (data.index === newIndex) {
-					return_value = {
-						color: data,
-						categoryName: category,
-					}
-				}
-			})
-		}
-		return return_value
+		return null
 	}
 
 	initFeedbacks() {
