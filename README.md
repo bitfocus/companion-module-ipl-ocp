@@ -3,7 +3,7 @@
 This Module allows for control and feedback from Inkling Performance Labs' 
 [Overlay Control Panel](https://github.com/inkfarer/ipl-overlay-controls)
 
-This module currently tested on IPL-OCP 3.2.0, 4.0.0
+This module currently tested on IPL-OC 4.0.0
 
 *This module does not support nodeCG instances with login enabled*
 

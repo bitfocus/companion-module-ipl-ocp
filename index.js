@@ -97,7 +97,7 @@ class instance extends instance_skel {
 				id: 'info',
 				width: 12,
 				label: 'Information',
-				value: 'This Module has been tested on IPL-OCP 3.2.0',
+				value: 'This Module has been tested on IPL-OCP 4.0.0',
 			},
 			{
 				type: 'textinput',
