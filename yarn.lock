@@ -5,6 +5,29 @@ __metadata:
   version: 6
   cacheKey: 8
 
+"@types/engine.io-client@npm:^3.1.5":
+  version: 3.1.5
+  resolution: "@types/engine.io-client@npm:3.1.5"
+  dependencies:
+    "@types/node": "*"
+  checksum: 3b563f736b4e7660c595826b39a15dec704ddcee0ba6936e60ad636c988c9d71ec0b51d5ba504a9af3e101b7369a185980f02c2394e56c3645f311d079c2be93
+  languageName: node
+  linkType: hard
+
+"@types/luxon@npm:^2.3.2":
+  version: 2.3.2
+  resolution: "@types/luxon@npm:2.3.2"
+  checksum: b9fe79118681f4bb9f2e37696a7df992a82683ba4448e7ad1af8cc241443ffc64ef08fdeaad749de9e6259b42b0d4b6540d7e880bca39bb504e0f3863d503c98
+  languageName: node
+  linkType: hard
+
+"@types/node@npm:*":
+  version: 17.0.35
+  resolution: "@types/node@npm:17.0.35"
+  checksum: 7a24946ae7fd20267ed92466384f594e448bfb151081158d565cc635d406ecb29ea8fb85fcd2a1f71efccf26fb5bd3c6f509bde56077eb8b832b847a6664bc62
+  languageName: node
+  linkType: hard
+
 "after@npm:0.8.2":
   version: 0.8.2
   resolution: "after@npm:0.8.2"
@@ -136,10 +159,13 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "ipl-ocp@workspace:."
   dependencies:
+    "@types/engine.io-client": ^3.1.5
+    "@types/luxon": ^2.3.2
     colord: ^2.9.2
     luxon: ^2.3.0
     prettier: 2.5.1
     socket.io-client: ^2.4.0
+    typescript: ^4.6.4
   languageName: unknown
   linkType: soft
 
@@ -221,6 +247,26 @@ __metadata:
   version: 0.1.4
   resolution: "to-array@npm:0.1.4"
   checksum: 396a04df5a5e74df5c8891ebb819d575d626e2929312fec3d649b4d38203bbf7185c270cb31fcad903564743895e935f2e965770bd1c6eb137dde48c4d60788d
+  languageName: node
+  linkType: hard
+
+"typescript@npm:^4.6.4":
+  version: 4.6.4
+  resolution: "typescript@npm:4.6.4"
+  bin:
+    tsc: bin/tsc
+    tsserver: bin/tsserver
+  checksum: e7bfcc39cd4571a63a54e5ea21f16b8445268b9900bf55aee0e02ad981be576acc140eba24f1af5e3c1457767c96cea6d12861768fb386cf3ffb34013718631a
+  languageName: node
+  linkType: hard
+
+"typescript@patch:typescript@^4.6.4#~builtin<compat/typescript>":
+  version: 4.6.4
+  resolution: "typescript@patch:typescript@npm%3A4.6.4#~builtin<compat/typescript>::version=4.6.4&hash=7ad353"
+  bin:
+    tsc: bin/tsc
+    tsserver: bin/tsserver
+  checksum: 1cb434fbc637d347be90e3a0c6cd05e33c38f941713c8786d3031faf1842c2c148ba91d2fac01e7276b0ae3249b8633f1660e32686cc7a8c6a8fd5361dc52c66
   languageName: node
   linkType: hard
 
