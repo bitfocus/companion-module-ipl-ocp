@@ -252,6 +252,7 @@ class IPLOCInstance extends InstanceSkel<IPLOCModuleConfig> {
 
     // When we connect to socket
     this.socket!.on('connect', () => {
+      this.checkFeedbacks('nodecg_connection_status')
       this.log('debug', `Connection opened`)
       this.status(this.STATUS_OK)
 
@@ -266,7 +267,7 @@ class IPLOCInstance extends InstanceSkel<IPLOCModuleConfig> {
               opts: this.replicantsMetadata[replicantName],
             },
             (data: SocketEventResponse<ReplicantMap[typeof replicantName]>) => {
-              ;(this.replicants[replicantName] as unknown) = data.value
+              (this.replicants[replicantName] as unknown) = data.value
               this.replicantsMetadata[replicantName].revision = data.revision
               this.replicantsMetadata[replicantName].schemaSum = data.schemaSum
               this.assignDynamicVariablesAndFeedback(replicantName)
@@ -291,6 +292,7 @@ class IPLOCInstance extends InstanceSkel<IPLOCModuleConfig> {
     })
 
     this.socket!.on('disconnect', (data) => {
+      this.checkFeedbacks('nodecg_connection_status')
       this.log('debug', `Connection closed due to ${data}`)
       this.status(this.STATUS_ERROR, `Connection closed due to ${data}`)
     })
@@ -584,6 +586,30 @@ class IPLOCInstance extends InstanceSkel<IPLOCModuleConfig> {
               bgcolor: this.rgb(0, 255, 0),
               color: this.rgb(0, 0, 0)
             }
+        }
+      }
+    }
+
+    feedbacks['nodecg_connection_status'] = {
+      type: 'advanced',
+      label: 'NodeCG connection status',
+      description: 'Changes this toggle\'s color and text to reflect the NodeCG connection status',
+      options: [],
+      callback: () => {
+        if (this.socket != null && this.socket.connected) {
+          return {
+            color: this.rgb(0, 0, 0),
+            bgcolor: this.rgb(0, 255, 0),
+            text: 'NODECG READY',
+            size: '14'
+          }
+        } else {
+          return {
+            color: this.rgb(255, 255, 255),
+            bgcolor: this.rgb(255, 0, 0),
+            text: 'NODECG OFF',
+            size: '14'
+          }
         }
       }
     }
@@ -893,6 +919,13 @@ class IPLOCInstance extends InstanceSkel<IPLOCModuleConfig> {
           } else {
             this.sendSocketMessage('startGame')
           }
+        }
+      },
+      reconnect: {
+        label: 'Reconnect to NodeCG',
+        options: [],
+        callback: () => {
+          this.initSocketConnection()
         }
       }
     })
