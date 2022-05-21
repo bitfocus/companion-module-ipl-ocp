@@ -598,13 +598,6 @@ class IPLOCInstance extends InstanceSkel<IPLOCModuleConfig> {
           this.sendSocketMessage('getLiveCommentators')
         },
       },
-      begin_next_match: {
-        label: 'Begin next match.',
-        options: [],
-        callback: () => {
-          this.sendSocketMessage('beginNextMatch')
-        },
-      },
       swap_colour: {
         label: 'Swap scoreboard color.',
         options: [],
