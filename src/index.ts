@@ -6,11 +6,13 @@ import { CompanionFeedbacks, CompanionSystem, SomeCompanionConfigField } from '.
 import {
   ActiveBreakScene,
   ActiveRound,
+  GameAutomationData,
   MusicShown,
   NextRound,
   NextRoundStartTime,
+  ObsData,
   ScoreboardData,
-  SwapColorsInternally,
+  SwapColorsInternally
 } from './types'
 
 interface IPLOCModuleConfig {
@@ -38,6 +40,8 @@ interface ReplicantMap {
   musicShown?: MusicShown
   nextRoundStartTime?: NextRoundStartTime
   nextRound?: NextRound
+  obsData?: ObsData
+  gameAutomationData?: GameAutomationData
 }
 
 interface SocketEventResponse<T> {
@@ -112,6 +116,8 @@ const replicantNames: Array<keyof ReplicantMap> & Array<string> = [
   'musicShown',
   'nextRoundStartTime',
   'nextRound',
+  'obsData',
+  'gameAutomationData'
 ]
 
 /**
@@ -121,6 +127,10 @@ const replicantNames: Array<keyof ReplicantMap> & Array<string> = [
  */
 function isEmpty(obj: {} | undefined) {
   return obj != null && Object.keys(obj).length === 0
+}
+
+function isBlank(value?: string | null): boolean {
+  return value === null || value === undefined || value.trim() === '';
 }
 
 class IPLOCInstance extends InstanceSkel<IPLOCModuleConfig> {
@@ -412,6 +422,10 @@ class IPLOCInstance extends InstanceSkel<IPLOCModuleConfig> {
       case 'nextRound':
         this.checkFeedbacks('show_next_match_on_stream')
         break
+      case 'gameAutomationData':
+      case 'obsData':
+        this.checkFeedbacks('automation_action_state')
+        break
     }
   }
 
@@ -537,6 +551,41 @@ class IPLOCInstance extends InstanceSkel<IPLOCModuleConfig> {
 
         return false
       },
+    }
+
+    feedbacks['automation_action_state'] = {
+      type: 'advanced',
+      label: 'Automation action state',
+      description: 'Changes this toggle\'s color and text to reflect the dashboard\'s automation action state.',
+      options: [],
+      callback: () => {
+        // if action is in progress, display text for next action
+        const nextTaskName = this.replicants.gameAutomationData?.nextTaskForAction?.name ?? ''
+        if (this.replicants.gameAutomationData?.actionInProgress !== 'NONE' && !isBlank(nextTaskName)) {
+          return {
+            text: {
+              changeScene: 'CHANGE SCENE',
+              showScoreboard: 'SHOW SB',
+              showCasters: 'SHOW CASTERS',
+              hideScoreboard: 'HIDE SB'
+            }[nextTaskName] ?? nextTaskName,
+            size: ['showScoreboard', 'hideScoreboard'].includes(nextTaskName) ? '18' : 'auto',
+            bgcolor: this.rgb(0, 0, 0),
+            color: this.rgb(255, 255, 255)
+          }
+        } else {
+          return this.replicants.obsData?.gameplayScene === this.replicants.obsData?.currentScene
+            ? {
+              text: 'END GAME',
+              bgcolor: this.rgb(255, 0, 0),
+              color: this.rgb(255, 255, 255)
+            } : {
+              text: 'START GAME',
+              bgcolor: this.rgb(0, 255, 0),
+              color: this.rgb(0, 0, 0)
+            }
+        }
+      }
     }
 
     this.setFeedbackDefinitions(feedbacks)
@@ -832,6 +881,20 @@ class IPLOCInstance extends InstanceSkel<IPLOCModuleConfig> {
           }
         },
       },
+      do_automation_action: {
+        label: 'Execute the next automation action (Start/Stop game, etc.)',
+        options: [],
+        callback: () => {
+          const nextTaskName = this.replicants.gameAutomationData?.nextTaskForAction?.name ?? ''
+          if (this.replicants.gameAutomationData?.actionInProgress !== 'NONE' && !isBlank(nextTaskName)) {
+            this.sendSocketMessage('fastForwardToNextGameAutomationTask')
+          } else if (this.replicants.obsData?.gameplayScene === this.replicants.obsData?.currentScene) {
+            this.sendSocketMessage('endGame')
+          } else {
+            this.sendSocketMessage('startGame')
+          }
+        }
+      }
     })
   }
 }
