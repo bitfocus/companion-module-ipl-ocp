@@ -811,7 +811,7 @@ class IPLOCInstance extends InstanceSkel<IPLOCModuleConfig> {
         callback: (action) => {
           const minutes = Number(action.options.minutes)
           if (minutes != null && !isNaN(minutes)) {
-            const time = DateTime.local().plus({ minutes }).toUTC().toISO()
+            const time = DateTime.local().plus({ minutes }).set({ second: 0 }).toUTC().toISO()
             this.sendSocketReplicantProposeOperations('nextRoundStartTime', [
               {
                 path: '/',
