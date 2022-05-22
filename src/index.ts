@@ -825,6 +825,39 @@ class IPLOCInstance extends InstanceSkel<IPLOCModuleConfig> {
           }
         },
       },
+      add_to_stage_timer: {
+        label: 'Add to next stage timer',
+        options: [
+          {
+            type: 'number',
+            label: '+ Minutes',
+            id: 'minutes',
+            tooltip: 'How many minutes to add to the timer',
+            min: 0,
+            max: 60,
+            default: 5,
+            step: 1,
+            required: true,
+            range: false,
+          },
+        ],
+        callback: (action) => {
+          const minutes = Number(action.options.minutes)
+          if (minutes != null && !isNaN(minutes) && this.replicants.nextRoundStartTime?.startTime != null) {
+            const time = DateTime.fromISO(this.replicants.nextRoundStartTime.startTime).plus({ minutes }).toUTC().toISO()
+            this.sendSocketReplicantProposeOperations('nextRoundStartTime', [
+              {
+                path: '/',
+                method: 'update',
+                args: {
+                  prop: 'startTime',
+                  newValue: time,
+                },
+              },
+            ])
+          }
+        },
+      },
       timer_visibility: {
         label: 'Show/Hide/Toggle Timer',
         options: [
