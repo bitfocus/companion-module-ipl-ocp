@@ -168,17 +168,7 @@ class IPLOCInstance extends InstanceSkel<IPLOCModuleConfig> {
     return this
   }
 
-  public init(): void {}
-
-  destroy() {
-    if (this.socket !== undefined) {
-      this.socket.disconnect()
-      delete this.socket
-    }
-  }
-
-  public updateConfig(config: IPLOCModuleConfig): void {
-    this.config = config
+  public init(): void {
     this.setVariableDefinitions([
       {
         label: 'Alpha Team Score',
@@ -201,6 +191,17 @@ class IPLOCInstance extends InstanceSkel<IPLOCModuleConfig> {
         name: 'games_in_set',
       },
     ])
+  }
+
+  destroy() {
+    if (this.socket !== undefined) {
+      this.socket.disconnect()
+      delete this.socket
+    }
+  }
+
+  public updateConfig(config: IPLOCModuleConfig): void {
+    this.config = config
     this.initSocketConnection()
   }
 
