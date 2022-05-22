@@ -14,6 +14,7 @@ import {
   ScoreboardData,
   SwapColorsInternally
 } from './types'
+import { modeNameToShortModeName, stageNameToShortStageName } from './helpers/SplatoonData'
 
 interface IPLOCModuleConfig {
   host?: string
@@ -172,24 +173,47 @@ class IPLOCInstance extends InstanceSkel<IPLOCModuleConfig> {
     this.setVariableDefinitions([
       {
         label: 'Alpha Team Score',
-        name: 'teams_alpha_score',
+        name: 'teams_alpha_score'
       },
       {
         label: 'Bravo Team Score',
-        name: 'teams_bravo_score',
+        name: 'teams_bravo_score'
       },
       {
         label: 'Alpha Team Name',
-        name: 'teams_alpha_name',
+        name: 'teams_alpha_name'
       },
       {
         label: 'Bravo Team Name',
-        name: 'teams_bravo_name',
+        name: 'teams_bravo_name'
       },
       {
         label: 'No. of games in set',
-        name: 'games_in_set',
+        name: 'games_in_set'
       },
+      {
+        label: 'The next mode to be played',
+        name: 'next_mode'
+      },
+      {
+        label: 'The next stage to be played',
+        name: 'next_stage'
+      }
+    ])
+    this.setPresetDefinitions([
+      {
+        category: 'Match info',
+        label: 'Next Stage',
+        bank: {
+          style: 'text',
+          text: 'Next: $(ocp:next_mode) $(ocp:next_stage)',
+          size: 'auto',
+          color: this.rgb(255, 255, 255),
+          bgcolor: this.rgb(0, 0, 0)
+        },
+        feedbacks: [],
+        actions: []
+      }
     ])
   }
 
@@ -407,6 +431,12 @@ class IPLOCInstance extends InstanceSkel<IPLOCModuleConfig> {
           this.setVariable('teams_alpha_name', this.replicants['activeRound']?.teamA.name)
           this.setVariable('teams_bravo_name', this.replicants['activeRound']?.teamB.name)
           this.setVariable('games_in_set', String(this.replicants['activeRound']?.games.length))
+
+          const nextGame = this.replicants.activeRound?.games.find(game => game.winner === 'none')
+          this.setVariables({
+            'next_mode': nextGame?.mode == null ? '??' : (modeNameToShortModeName[nextGame.mode] ?? nextGame.mode),
+            'next_stage': nextGame?.stage == null ? '???' : (stageNameToShortStageName[nextGame.stage] ?? nextGame.stage),
+          })
         }
         this.checkFeedbacks('team_colour')
         break
