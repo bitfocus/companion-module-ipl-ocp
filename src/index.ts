@@ -796,55 +796,60 @@ class IPLOCInstance extends InstanceSkel<IPLOCModuleConfig> {
         label: 'Set Next Stage Timer',
         options: [
           {
-            type: 'number',
+            type: 'textwithvariables',
             label: '+ Minutes',
             id: 'minutes',
-            tooltip: 'How many minutes in the future you want the time set to',
-            min: 0,
-            max: 30,
-            default: 5,
-            step: 1,
-            required: true,
-            range: false,
+            tooltip: 'How many minutes in the future you want the time set to. Must be numeric, may be a variable reference.',
+            default: '5'
           },
         ],
         callback: (action) => {
-          const minutes = Number(action.options.minutes)
-          if (minutes != null && !isNaN(minutes)) {
-            const time = DateTime.local().plus({ minutes }).set({ second: 0 }).toUTC().toISO()
-            this.sendSocketReplicantProposeOperations('nextRoundStartTime', [
-              {
-                path: '/',
-                method: 'update',
-                args: {
-                  prop: 'startTime',
-                  newValue: time,
+          this.parseVariables(String(action.options.minutes), parsedMinutes => {
+            const minutes = Number(parsedMinutes)
+
+            if (minutes != null && !isNaN(minutes)) {
+              const normalizedMinutes = Math.max(0, minutes)
+              const time = DateTime.local().plus({ minutes: normalizedMinutes }).set({ second: 0 }).toUTC().toISO()
+              this.sendSocketReplicantProposeOperations('nextRoundStartTime', [
+                {
+                  path: '/',
+                  method: 'update',
+                  args: {
+                    prop: 'startTime',
+                    newValue: time,
+                  },
                 },
-              },
-            ])
-          }
+              ])
+            } else {
+              this.log('error', `Value of option "Minutes" was "${parsedMinutes}", which is not numeric!`)
+            }
+          })
         },
       },
       add_to_stage_timer: {
         label: 'Add to next stage timer',
         options: [
           {
-            type: 'number',
+            type: 'textwithvariables',
             label: '+ Minutes',
             id: 'minutes',
-            tooltip: 'How many minutes to add to the timer',
-            min: 0,
-            max: 60,
-            default: 5,
-            step: 1,
-            required: true,
-            range: false,
+            tooltip: 'How many minutes to add to the timer. Must be numeric, may be a variable reference.',
+            default: '1'
           },
         ],
         callback: (action) => {
-          const minutes = Number(action.options.minutes)
-          if (minutes != null && !isNaN(minutes) && this.replicants.nextRoundStartTime?.startTime != null) {
-            const time = DateTime.fromISO(this.replicants.nextRoundStartTime.startTime).plus({ minutes }).toUTC().toISO()
+          this.parseVariables(String(action.options.minutes), parsedMinutes => {
+            const minutes = Number(parsedMinutes)
+            if (minutes == null || isNaN(minutes)) {
+              this.log('error', `Value of option "Minutes" was "${parsedMinutes}", which is not numeric!`)
+              return
+            } else if (this.replicants.nextRoundStartTime?.startTime == null) {
+              this.log('error', 'Replicant "nextRoundStartTime" has not yet been initialized.')
+              return
+            }
+
+            const normalizedMinutes = Math.max(0, minutes)
+            const time = DateTime.fromISO(this.replicants.nextRoundStartTime.startTime).plus({ minutes: normalizedMinutes }).toUTC().toISO()
             this.sendSocketReplicantProposeOperations('nextRoundStartTime', [
               {
                 path: '/',
@@ -855,7 +860,7 @@ class IPLOCInstance extends InstanceSkel<IPLOCModuleConfig> {
                 },
               },
             ])
-          }
+          })
         },
       },
       timer_visibility: {
