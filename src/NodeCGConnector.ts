@@ -84,7 +84,7 @@ export class NodeCGConnector<B extends BundleMap> extends (EventEmitter as new (
 
     this.disconnect()
 
-    this.socket = io(`ws://${this.opts.host}:${this.opts.port}`, { reconnection: true })
+    this.socket = io(`ws://${this.opts.host}:${this.opts.port}`, { reconnection: true } as any)
 
     this.socket.on('connect', () => {
       for (const [bundle, replicants] of Object.entries(this.replicantNames)) {
