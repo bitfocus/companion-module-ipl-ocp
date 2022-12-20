@@ -53,59 +53,13 @@ function isBlank(value?: string | null): boolean {
 }
 
 class IPLOCInstance extends InstanceSkel<IPLOCModuleConfig> {
-  private readonly socket: NodeCGConnector<IPLOCBundleMap>
+  private socket!: NodeCGConnector<IPLOCBundleMap>
 
-  constructor(system: CompanionSystem, id: string, config: IPLOCModuleConfig) {
-    super(system, id, config)
-
-    this.socket = new NodeCGConnector({
-      host: config.host,
-      port: config.port
-    }, {
-      [DASHBOARD_BUNDLE_NAME]: [
-        'activeRound',
-        'scoreboardData',
-        'swapColorsInternally',
-        'activeBreakScene',
-        'musicShown',
-        'nextRoundStartTime',
-        'nextRound',
-        'obsData',
-        'gameAutomationData'
-      ]
-    })
-
-    this.socket.on('connect', () => {
-      this.checkFeedbacks('nodecg_connection_status')
-      this.log('debug', `Connection opened`)
-      this.status(this.STATUS_OK)
-    })
-
-    this.socket.on('disconnect', reason => {
-      this.checkFeedbacks('nodecg_connection_status')
-      const msg = `NodeCG connection closed. Reason: ${reason}`
-      this.log('debug', msg)
-      this.status(this.STATUS_ERROR, msg)
-    })
-
-    this.socket.on('error', err => {
-      this.log('error', `Socket.io error: ${err}`)
-    })
-
-    this.socket.on('replicantUpdate', name => {
-      this.assignDynamicVariablesAndFeedback(name as keyof ReplicantMap)
-    })
-
-    this.socket.start()
-
+  public init(): void {
     this.initFeedbacks()
     this.actions()
     this.subscribeFeedbacks()
 
-    return this
-  }
-
-  public init(): void {
     this.setVariableDefinitions([
       {
         label: 'Alpha Team Score',
@@ -151,6 +105,47 @@ class IPLOCInstance extends InstanceSkel<IPLOCModuleConfig> {
         actions: []
       }
     ])
+
+    this.socket = new NodeCGConnector({
+      host: this.config.host,
+      port: this.config.port
+    }, {
+      [DASHBOARD_BUNDLE_NAME]: [
+        'activeRound',
+        'scoreboardData',
+        'swapColorsInternally',
+        'activeBreakScene',
+        'musicShown',
+        'nextRoundStartTime',
+        'nextRound',
+        'obsData',
+        'gameAutomationData'
+      ]
+    })
+
+    this.socket.on('connect', () => {
+      this.checkFeedbacks('nodecg_connection_status')
+      this.log('debug', `Connection opened`)
+      this.status(this.STATUS_OK)
+    })
+
+    this.socket.on('disconnect', reason => {
+      this.checkFeedbacks('nodecg_connection_status')
+      const msg = `NodeCG connection closed. Reason: ${reason}`
+      this.log('debug', msg)
+      this.status(this.STATUS_ERROR, msg)
+    })
+
+    this.socket.on('error', err => {
+      this.log('error', `Socket.io error: ${err}`)
+    })
+
+    this.socket.on('replicantUpdate', name => {
+      this.assignDynamicVariablesAndFeedback(name as keyof ReplicantMap)
+    })
+
+    this.socket.start()
+
   }
 
   destroy() {
