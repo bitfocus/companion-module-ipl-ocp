@@ -1,7 +1,7 @@
 import InstanceSkel = require('../../../instance_skel')
 import { colord } from 'colord'
 import { DateTime } from 'luxon'
-import { CompanionFeedbacks, CompanionSystem, SomeCompanionConfigField } from '../../../instance_skel_types'
+import { CompanionFeedbacks, SomeCompanionConfigField } from '../../../instance_skel_types'
 import {
   ActiveBreakScene,
   ActiveRound,
