@@ -1,7 +1,13 @@
-import InstanceSkel = require('../../../instance_skel')
+import {
+  combineRgb,
+  CompanionFeedbackDefinitions,
+  InstanceBase,
+  InstanceStatus,
+  Regex, runEntrypoint,
+  SomeCompanionConfigField
+} from '@companion-module/base';
 import { colord } from 'colord'
 import { DateTime } from 'luxon'
-import { CompanionFeedbacks, CompanionSystem, SomeCompanionConfigField } from '../../../instance_skel_types'
 import {
   ActiveBreakScene,
   ActiveRound,
@@ -52,63 +58,63 @@ function isBlank(value?: string | null): boolean {
   return value === null || value === undefined || value.trim() === '';
 }
 
-class IPLOCInstance extends InstanceSkel<IPLOCModuleConfig> {
+class IPLOCInstance extends InstanceBase<IPLOCModuleConfig> {
   private socket!: NodeCGConnector<IPLOCBundleMap>
 
-  public init(): void {
+  public async init(config: IPLOCModuleConfig): Promise<void> {
     this.initFeedbacks()
     this.actions()
     this.subscribeFeedbacks()
 
     this.setVariableDefinitions([
       {
-        label: 'Alpha Team Score',
-        name: 'teams_alpha_score'
+        name: 'Alpha Team Score',
+        variableId: 'teams_alpha_score'
       },
       {
-        label: 'Bravo Team Score',
-        name: 'teams_bravo_score'
+        name: 'Bravo Team Score',
+        variableId: 'teams_bravo_score'
       },
       {
-        label: 'Alpha Team Name',
-        name: 'teams_alpha_name'
+        name: 'Alpha Team Name',
+        variableId: 'teams_alpha_name'
       },
       {
-        label: 'Bravo Team Name',
-        name: 'teams_bravo_name'
+        name: 'Bravo Team Name',
+        variableId: 'teams_bravo_name'
       },
       {
-        label: 'No. of games in set',
-        name: 'games_in_set'
+        name: 'No. of games in set',
+        variableId: 'games_in_set'
       },
       {
-        label: 'The next mode to be played',
-        name: 'next_mode'
+        name: 'The next mode to be played',
+        variableId: 'next_mode'
       },
       {
-        label: 'The next stage to be played',
-        name: 'next_stage'
+        name: 'The next stage to be played',
+        variableId: 'next_stage'
       }
     ])
-    this.setPresetDefinitions([
-      {
+    this.setPresetDefinitions({
+      nextStage: {
+        type: 'button',
         category: 'Match info',
-        label: 'Next Stage',
-        bank: {
-          style: 'text',
+        name: 'Next Stage',
+        style: {
           text: 'Next: $(ocp:next_mode) $(ocp:next_stage)',
           size: 'auto',
-          color: this.rgb(255, 255, 255),
-          bgcolor: this.rgb(0, 0, 0)
+          color: combineRgb(255, 255, 255),
+          bgcolor: combineRgb(0, 0, 0)
         },
         feedbacks: [],
-        actions: []
+        steps: []
       }
-    ])
+    })
 
-    this.socket = new NodeCGConnector({
-      host: this.config.host,
-      port: this.config.port
+    this.socket = new NodeCGConnector(this, {
+      host: config.host,
+      port: config.port
     }, {
       [DASHBOARD_BUNDLE_NAME]: [
         'activeRound',
@@ -126,14 +132,14 @@ class IPLOCInstance extends InstanceSkel<IPLOCModuleConfig> {
     this.socket.on('connect', () => {
       this.checkFeedbacks('nodecg_connection_status')
       this.log('debug', `Connection opened`)
-      this.status(this.STATUS_OK)
+      this.updateStatus(InstanceStatus.Ok);
     })
 
     this.socket.on('disconnect', reason => {
       this.checkFeedbacks('nodecg_connection_status')
       const msg = `NodeCG connection closed. Reason: ${reason}`
       this.log('debug', msg)
-      this.status(this.STATUS_ERROR, msg)
+      this.updateStatus(InstanceStatus.Disconnected, msg)
     })
 
     this.socket.on('error', err => {
@@ -144,30 +150,30 @@ class IPLOCInstance extends InstanceSkel<IPLOCModuleConfig> {
       this.assignDynamicVariablesAndFeedback(name as keyof ReplicantMap)
     })
 
+    this.updateStatus(InstanceStatus.Connecting)
     this.socket.start()
-
   }
 
-  destroy() {
+  async destroy() {
     this.socket.disconnect()
   }
 
-  public updateConfig(config: IPLOCModuleConfig): void {
-    this.config = config
+  public async configUpdated(config: IPLOCModuleConfig): Promise<void> {
+    this.updateStatus(InstanceStatus.Connecting)
     this.socket?.updateConfig({
       host: config.host,
       port: config.port
     })
   }
 
-  public config_fields(): SomeCompanionConfigField[] {
+  public getConfigFields(): SomeCompanionConfigField[] {
     return [
       {
-        type: 'text',
+        type: 'static-text',
         id: 'info',
         width: 12,
         label: 'Information',
-        value: 'This Module has been tested on IPL-OCP 4.0.0',
+        value: 'Tested with ipl-overlay-controls 4.7.0 running on NodeCG 2.1',
       },
       {
         type: 'textinput',
@@ -183,7 +189,7 @@ class IPLOCInstance extends InstanceSkel<IPLOCModuleConfig> {
         label: 'Port',
         tooltip: 'The port of the NodeCG instance running IPL OCP',
         width: 6,
-        regex: this.REGEX_NUMBER,
+        regex: Regex.NUMBER,
         default: '9090',
       },
     ]
@@ -197,16 +203,16 @@ class IPLOCInstance extends InstanceSkel<IPLOCModuleConfig> {
     switch (replicantName) {
       case 'activeRound':
         if (!isEmpty(this.socket.replicants[DASHBOARD_BUNDLE_NAME]['activeRound'])) {
-          this.setVariable('teams_alpha_score', String(this.socket.replicants[DASHBOARD_BUNDLE_NAME]['activeRound']?.teamA.score))
-          this.setVariable('teams_bravo_score', String(this.socket.replicants[DASHBOARD_BUNDLE_NAME]['activeRound']?.teamB.score))
-          this.setVariable('teams_alpha_name', this.socket.replicants[DASHBOARD_BUNDLE_NAME]['activeRound']?.teamA.name)
-          this.setVariable('teams_bravo_name', this.socket.replicants[DASHBOARD_BUNDLE_NAME]['activeRound']?.teamB.name)
-          this.setVariable('games_in_set', String(this.socket.replicants[DASHBOARD_BUNDLE_NAME]['activeRound']?.games.length))
-
           const nextGame = this.socket.replicants[DASHBOARD_BUNDLE_NAME].activeRound?.games.find(game => game.winner === 'none')
-          this.setVariables({
-            'next_mode': nextGame?.mode == null ? '??' : (modeNameToShortModeName[nextGame.mode] ?? nextGame.mode),
-            'next_stage': nextGame?.stage == null ? '???' : (stageNameToShortStageName[nextGame.stage] ?? nextGame.stage),
+
+          this.setVariableValues({
+            teams_alpha_score: String(this.socket.replicants[DASHBOARD_BUNDLE_NAME]['activeRound']?.teamA.score),
+            teams_bravo_score: String(this.socket.replicants[DASHBOARD_BUNDLE_NAME]['activeRound']?.teamB.score),
+            teams_alpha_name: this.socket.replicants[DASHBOARD_BUNDLE_NAME]['activeRound']?.teamA.name,
+            teams_bravo_name: this.socket.replicants[DASHBOARD_BUNDLE_NAME]['activeRound']?.teamB.name,
+            games_in_set: String(this.socket.replicants[DASHBOARD_BUNDLE_NAME]['activeRound']?.games.length),
+            next_mode: nextGame?.mode == null ? '??' : (modeNameToShortModeName[nextGame.mode] ?? nextGame.mode),
+            next_stage: nextGame?.stage == null ? '???' : (stageNameToShortStageName[nextGame.stage] ?? nextGame.stage),
           })
         }
         this.checkFeedbacks('team_colour')
@@ -234,12 +240,12 @@ class IPLOCInstance extends InstanceSkel<IPLOCModuleConfig> {
   }
 
   initFeedbacks() {
-    let feedbacks: CompanionFeedbacks = {}
+    let feedbacks: CompanionFeedbackDefinitions = {}
     let self = this
 
     feedbacks['team_colour'] = {
       type: 'advanced',
-      label: 'Change BG colour to teams colour',
+      name: 'Change BG colour to teams colour',
       description: 'Change colour of background when updated.',
       options: [
         {
@@ -262,8 +268,8 @@ class IPLOCInstance extends InstanceSkel<IPLOCModuleConfig> {
             // Choose what text colour to use for feedback depending on the background colour
             const colour = (bgcolour.r * 299 + bgcolour.g * 587 + bgcolour.b * 114) / 1000 >= 128 ? 30 : 230
             return {
-              bgcolor: self.rgb(bgcolour.r, bgcolour.g, bgcolour.b),
-              color: self.rgb(colour, colour, colour),
+              bgcolor: combineRgb(bgcolour.r, bgcolour.g, bgcolour.b),
+              color: combineRgb(colour, colour, colour),
             }
           }
         }
@@ -273,10 +279,10 @@ class IPLOCInstance extends InstanceSkel<IPLOCModuleConfig> {
 
     feedbacks['scoreboard_visibility'] = {
       type: 'boolean',
-      label: 'Scoreboard Visibility',
+      name: 'Scoreboard Visibility',
       description: 'Change background colour when scoreboard is visible.',
-      style: {
-        bgcolor: self.rgb(0, 255, 0),
+      defaultStyle: {
+        bgcolor: combineRgb(0, 255, 0),
       },
       options: [],
       callback: function () {
@@ -291,10 +297,10 @@ class IPLOCInstance extends InstanceSkel<IPLOCModuleConfig> {
 
     feedbacks['music_visibility'] = {
       type: 'boolean',
-      label: 'Music Visibility',
+      name: 'Music Visibility',
       description: 'Change background colour when music is visible.',
-      style: {
-        bgcolor: self.rgb(0, 255, 0),
+      defaultStyle: {
+        bgcolor: combineRgb(0, 255, 0),
       },
       options: [],
       callback: function () {
@@ -304,10 +310,10 @@ class IPLOCInstance extends InstanceSkel<IPLOCModuleConfig> {
 
     feedbacks['timer_visibility'] = {
       type: 'boolean',
-      label: 'Timer Visibility',
+      name: 'Timer Visibility',
       description: 'Change background colour when timer is visible.',
-      style: {
-        bgcolor: self.rgb(0, 255, 0),
+      defaultStyle: {
+        bgcolor: combineRgb(0, 255, 0),
       },
       options: [],
       callback: function () {
@@ -317,10 +323,10 @@ class IPLOCInstance extends InstanceSkel<IPLOCModuleConfig> {
 
     feedbacks['show_next_match_on_stream'] = {
       type: 'boolean',
-      label: 'Next Match Visibility',
+      name: 'Next Match Visibility',
       description: 'Change background colour when Next match is on stream.',
-      style: {
-        bgcolor: self.rgb(0, 255, 0),
+      defaultStyle: {
+        bgcolor: combineRgb(0, 255, 0),
       },
       options: [],
       callback: function () {
@@ -330,10 +336,10 @@ class IPLOCInstance extends InstanceSkel<IPLOCModuleConfig> {
 
     feedbacks['break_scene_visibility'] = {
       type: 'boolean',
-      label: 'Break Scene Visibility',
+      name: 'Break Scene Visibility',
       description: 'Change background colour when selected break scene is visible.',
-      style: {
-        bgcolor: self.rgb(0, 255, 0),
+      defaultStyle: {
+        bgcolor: combineRgb(0, 255, 0),
       },
       options: [
         {
@@ -359,15 +365,15 @@ class IPLOCInstance extends InstanceSkel<IPLOCModuleConfig> {
 
     feedbacks['automation_action_state'] = {
       type: 'advanced',
-      label: 'Automation action state',
+      name: 'Automation action state',
       description: 'Changes this toggle\'s color and text to reflect the dashboard\'s automation action state.',
       options: [],
       callback: () => {
         if (this.socket.replicants[DASHBOARD_BUNDLE_NAME].obsData?.status !== 'CONNECTED') {
           return {
             text: 'OFF',
-            bgcolor: this.rgb(0, 0, 0),
-            color: this.rgb(255, 255, 255)
+            bgcolor: combineRgb(0, 0, 0),
+            color: combineRgb(255, 255, 255)
           }
         }
 
@@ -381,19 +387,19 @@ class IPLOCInstance extends InstanceSkel<IPLOCModuleConfig> {
               hideScoreboard: 'HIDE SB'
             }[nextTaskName] ?? nextTaskName,
             size: ['showScoreboard', 'hideScoreboard'].includes(nextTaskName) ? '18' : 'auto',
-            bgcolor: this.rgb(0, 0, 0),
-            color: this.rgb(255, 255, 255)
+            bgcolor: combineRgb(0, 0, 0),
+            color: combineRgb(255, 255, 255)
           }
         } else {
           return this.socket.replicants[DASHBOARD_BUNDLE_NAME].obsData?.gameplayScene === this.socket.replicants[DASHBOARD_BUNDLE_NAME].obsData?.currentScene
             ? {
               text: 'END GAME',
-              bgcolor: this.rgb(255, 0, 0),
-              color: this.rgb(255, 255, 255)
+              bgcolor: combineRgb(255, 0, 0),
+              color: combineRgb(255, 255, 255)
             } : {
               text: 'START GAME',
-              bgcolor: this.rgb(0, 255, 0),
-              color: this.rgb(0, 0, 0)
+              bgcolor: combineRgb(0, 255, 0),
+              color: combineRgb(0, 0, 0)
             }
         }
       }
@@ -401,21 +407,21 @@ class IPLOCInstance extends InstanceSkel<IPLOCModuleConfig> {
 
     feedbacks['nodecg_connection_status'] = {
       type: 'advanced',
-      label: 'NodeCG connection status',
+      name: 'NodeCG connection status',
       description: 'Changes this toggle\'s color and text to reflect the NodeCG connection status',
       options: [],
       callback: () => {
         if (this.socket != null && this.socket.isConnected()) {
           return {
-            color: this.rgb(0, 0, 0),
-            bgcolor: this.rgb(0, 255, 0),
+            color: combineRgb(0, 0, 0),
+            bgcolor: combineRgb(0, 255, 0),
             text: 'NODECG READY',
             size: '14'
           }
         } else {
           return {
-            color: this.rgb(255, 255, 255),
-            bgcolor: this.rgb(255, 0, 0),
+            color: combineRgb(255, 255, 255),
+            bgcolor: combineRgb(255, 0, 0),
             text: 'NODECG OFF',
             size: '14'
           }
@@ -427,9 +433,9 @@ class IPLOCInstance extends InstanceSkel<IPLOCModuleConfig> {
   }
 
   actions() {
-    this.setActions({
+    this.setActionDefinitions({
       set_win: {
-        label: 'Set win on last game',
+        name: 'Set win on last game',
         options: [
           {
             type: 'dropdown',
@@ -451,7 +457,7 @@ class IPLOCInstance extends InstanceSkel<IPLOCModuleConfig> {
         },
       },
       remove_win: {
-        label: 'Remove the last win for either team.',
+        name: 'Remove the last win for either team.',
         options: [],
         callback: () => {
           // Check there's scores to remove
@@ -462,35 +468,35 @@ class IPLOCInstance extends InstanceSkel<IPLOCModuleConfig> {
         },
       },
       show_caster: {
-        label: 'Show Casters on Main Scene.',
+        name: 'Show Casters on Main Scene.',
         options: [],
         callback: () => {
           this.socket.sendMessage('mainShowCasters')
         },
       },
       show_predictions: {
-        label: 'Show Predictions.',
+        name: 'Show Predictions.',
         options: [],
         callback: () => {
           this.socket.sendMessage('showPredictionData')
         },
       },
       get_live_commentators: {
-        label: 'Load Commentators from VC.',
+        name: 'Load Commentators from VC.',
         options: [],
         callback: () => {
           this.socket.sendMessage('getLiveCommentators')
         },
       },
       swap_colour: {
-        label: 'Swap scoreboard color.',
+        name: 'Swap scoreboard color.',
         options: [],
         callback: () => {
           this.socket.proposeReplicantAssignment('swapColorsInternally', DASHBOARD_BUNDLE_NAME, !this.socket.replicants[DASHBOARD_BUNDLE_NAME]['swapColorsInternally'])
         },
       },
       cycle_colour: {
-        label: 'Cycle colour in game',
+        name: 'Cycle colour in game',
         options: [
           {
             type: 'dropdown',
@@ -512,7 +518,7 @@ class IPLOCInstance extends InstanceSkel<IPLOCModuleConfig> {
         },
       },
       scoreboard_visibility: {
-        label: 'Show/Hide/Toggle Scoreboard on main',
+        name: 'Show/Hide/Toggle Scoreboard on main',
         options: [
           {
             type: 'dropdown',
@@ -553,7 +559,7 @@ class IPLOCInstance extends InstanceSkel<IPLOCModuleConfig> {
         },
       },
       change_break_scene: {
-        label: 'Change break scene',
+        name: 'Change break scene',
         options: [
           {
             type: 'dropdown',
@@ -579,7 +585,7 @@ class IPLOCInstance extends InstanceSkel<IPLOCModuleConfig> {
         },
       },
       music_visibility: {
-        label: 'Show/Hide/Toggle Music',
+        name: 'Show/Hide/Toggle Music',
         options: [
           {
             type: 'dropdown',
@@ -602,64 +608,25 @@ class IPLOCInstance extends InstanceSkel<IPLOCModuleConfig> {
         },
       },
       set_stage_timer: {
-        label: 'Set Next Stage Timer',
+        name: 'Set Next Stage Timer',
         options: [
           {
-            type: 'textwithvariables',
+            type: 'textinput',
+            useVariables: true,
             label: '+ Minutes',
             id: 'minutes',
             tooltip: 'How many minutes in the future you want the time set to. Must be numeric, may be a variable reference.',
             default: '5'
           },
         ],
-        callback: (action) => {
-          this.parseVariables(String(action.options.minutes), parsedMinutes => {
-            const minutes = Number(parsedMinutes)
+        callback: async (action) => {
+          const parsedMinutes = await this.parseVariablesInString(String(action.options.minutes))
 
-            if (minutes != null && !isNaN(minutes)) {
-              const normalizedMinutes = Math.max(0, minutes)
-              const time = DateTime.local().plus({ minutes: normalizedMinutes }).set({ second: 0 }).toUTC().toISO()
-              this.socket.proposeReplicantOperations('nextRoundStartTime', DASHBOARD_BUNDLE_NAME, [
-                {
-                  path: '/',
-                  method: 'update',
-                  args: {
-                    prop: 'startTime',
-                    newValue: time,
-                  },
-                },
-              ])
-            } else {
-              this.log('error', `Value of option "Minutes" was "${parsedMinutes}", which is not numeric!`)
-            }
-          })
-        },
-      },
-      add_to_stage_timer: {
-        label: 'Add to next stage timer',
-        options: [
-          {
-            type: 'textwithvariables',
-            label: '+ Minutes',
-            id: 'minutes',
-            tooltip: 'How many minutes to add to the timer. Must be numeric, may be a variable reference.',
-            default: '1'
-          },
-        ],
-        callback: (action) => {
-          this.parseVariables(String(action.options.minutes), parsedMinutes => {
-            const minutes = Number(parsedMinutes)
-            if (minutes == null || isNaN(minutes)) {
-              this.log('error', `Value of option "Minutes" was "${parsedMinutes}", which is not numeric!`)
-              return
-            } else if (this.socket.replicants[DASHBOARD_BUNDLE_NAME]?.nextRoundStartTime?.startTime == null) {
-              this.log('error', 'Replicant "nextRoundStartTime" has not yet been initialized.')
-              return
-            }
+          const minutes = Number(parsedMinutes)
 
+          if (minutes != null && !isNaN(minutes)) {
             const normalizedMinutes = Math.max(0, minutes)
-            // @ts-ignore: TypeScript doesn't understand the above null check
-            const time = DateTime.fromISO(this.socket.replicants[DASHBOARD_BUNDLE_NAME].nextRoundStartTime.startTime).plus({ minutes: normalizedMinutes }).toUTC().toISO()
+            const time = DateTime.local().plus({ minutes: normalizedMinutes }).set({ second: 0 }).toUTC().toISO()
             this.socket.proposeReplicantOperations('nextRoundStartTime', DASHBOARD_BUNDLE_NAME, [
               {
                 path: '/',
@@ -670,11 +637,51 @@ class IPLOCInstance extends InstanceSkel<IPLOCModuleConfig> {
                 },
               },
             ])
-          })
+          } else {
+            this.log('error', `Value of option "Minutes" was "${parsedMinutes}", which is not numeric!`)
+          }
+        },
+      },
+      add_to_stage_timer: {
+        name: 'Add to next stage timer',
+        options: [
+          {
+            type: 'textinput',
+            useVariables: true,
+            label: '+ Minutes',
+            id: 'minutes',
+            tooltip: 'How many minutes to add to the timer. Must be numeric, may be a variable reference.',
+            default: '1'
+          },
+        ],
+        callback: async (action) => {
+          const parsedMinutes = await this.parseVariablesInString(String(action.options.minutes))
+          const minutes = Number(parsedMinutes)
+          if (minutes == null || isNaN(minutes)) {
+            this.log('error', `Value of option "Minutes" was "${parsedMinutes}", which is not numeric!`)
+            return
+          } else if (this.socket.replicants[DASHBOARD_BUNDLE_NAME]?.nextRoundStartTime?.startTime == null) {
+            this.log('error', 'Replicant "nextRoundStartTime" has not yet been initialized.')
+            return
+          }
+
+          const normalizedMinutes = Math.max(0, minutes)
+          // @ts-ignore: TypeScript doesn't understand the above null check
+          const time = DateTime.fromISO(this.socket.replicants[DASHBOARD_BUNDLE_NAME].nextRoundStartTime.startTime).plus({ minutes: normalizedMinutes }).toUTC().toISO()
+          this.socket.proposeReplicantOperations('nextRoundStartTime', DASHBOARD_BUNDLE_NAME, [
+            {
+              path: '/',
+              method: 'update',
+              args: {
+                prop: 'startTime',
+                newValue: time,
+              },
+            },
+          ])
         },
       },
       timer_visibility: {
-        label: 'Show/Hide/Toggle Timer',
+        name: 'Show/Hide/Toggle Timer',
         options: [
           {
             type: 'dropdown',
@@ -715,7 +722,7 @@ class IPLOCInstance extends InstanceSkel<IPLOCModuleConfig> {
         },
       },
       next_on_stream_visibility: {
-        label: 'Show/Hide/Toggle Show next match on stream',
+        name: 'Show/Hide/Toggle Show next match on stream',
         options: [
           {
             type: 'dropdown',
@@ -756,7 +763,7 @@ class IPLOCInstance extends InstanceSkel<IPLOCModuleConfig> {
         },
       },
       do_automation_action: {
-        label: 'Execute the next automation action (Start/Stop game, etc.)',
+        name: 'Execute the next automation action (Start/Stop game, etc.)',
         options: [],
         callback: () => {
           if (this.socket.replicants[DASHBOARD_BUNDLE_NAME].obsData?.status !== 'CONNECTED') {
@@ -775,7 +782,7 @@ class IPLOCInstance extends InstanceSkel<IPLOCModuleConfig> {
         }
       },
       reconnect: {
-        label: 'Reconnect to NodeCG',
+        name: 'Reconnect to NodeCG',
         options: [],
         callback: () => {
           this.socket.start()
@@ -785,4 +792,4 @@ class IPLOCInstance extends InstanceSkel<IPLOCModuleConfig> {
   }
 }
 
-exports = module.exports = IPLOCInstance
+runEntrypoint(IPLOCInstance, [])

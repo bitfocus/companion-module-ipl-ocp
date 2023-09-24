@@ -22,7 +22,7 @@ export interface ReplicantOperation {
   method: string
   path: string
   args: {
-    prop: string
+    prop?: string
     newValue: unknown
   },
   result?: unknown

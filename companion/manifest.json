@@ -1,0 +1,37 @@
+{
+	"id": "ipl-ocp",
+	"name": "ipl-ocp",
+	"shortname": "ocp",
+	"description": "Module to control IPL OCP",
+	"version": "0.0.0",
+	"license": "MIT",
+	"repository": "git+https://github.com/bitfocus/companion-module-ipl-ocp.git",
+	"bugs": "https://github.com/bitfocus/companion-module-ipl-ocp/issues",
+	"maintainers": [
+		{
+			"name": "Vincent Lee",
+			"email": "vlee@iplabs.ink"
+		},
+		{
+			"name": "Inkfarer",
+			"email": "inkfarer@iplabs.ink"
+		}
+	],
+	"legacyIds": [],
+	"runtime": {
+		"type": "node18",
+		"api": "nodejs-ipc",
+		"apiVersion": "0.0.0",
+		"entrypoint": "..\\dist\\index.js"
+	},
+	"manufacturer": "Inkling Performance Labs",
+	"products": [
+		"Overlay Control Panel"
+	],
+	"keywords": [
+		"ipl",
+		"ocp",
+		"Inkling Performance Labs",
+		"Overlay Control Panel"
+	]
+}

@@ -1,46 +1,29 @@
 {
 	"name": "ipl-ocp",
-	"version": "2.0.5",
-	"api_version": "1.0.0",
-	"manufacturer": "Inkling Performance Labs",
-	"product": "Overlay Control Panel",
-	"keywords": [
-		"ipl",
-		"ocp",
-		"Inkling Performance Labs",
-		"Overlay Control Panel"
-	],
-	"shortname": "ocp",
-	"description": "Module to control IPL OCP",
+	"version": "3.0.0",
 	"main": "dist/index.js",
 	"scripts": {
-		"build": "npx rimraf dist && npx --package=typescript@~4.5 -c 'tsc -p tsconfig.build.json'",
+		"build": "rimraf dist && yarn build:main",
 		"build:main": "tsc -p tsconfig.build.json",
-		"build:watch": "tsc -p tsconfig.build.json --watch",
-		"postinstall": "yarn build"
+		"build:watch": "tsc -p tsconfig.build.json --watch"
 	},
-	"author": "Vincent Lee <vlee@iplabs.ink>",
-	"contributors": [
-		"Inkfarer <inkfarer@iplabs.ink>"
-	],
 	"license": "MIT",
 	"dependencies": {
-		"@types/luxon": "^2.3.2",
-		"@types/object-path": "^0.11.1",
+		"@companion-module/base": "~1.4",
 		"colord": "^2.9.2",
 		"luxon": "^2.3.0",
 		"object-path": "^0.11.8",
-		"socket.io-client": "^2.4.0",
+		"socket.io-client": "^4.5.4",
 		"tslib": "^2.4.1",
 		"typed-emitter": "^2.1.0"
 	},
 	"devDependencies": {
+		"@types/luxon": "^2.3.2",
+		"@types/object-path": "^0.11.1",
+		"@companion-module/tools": "^1.4.1",
+		"@types/node": "^20.6.3",
 		"prettier": "2.5.1",
 		"typescript": "~4.5"
-	},
-	"homepage": "https://github.com/bitfocus/companion-module-ipl-ocp#readme",
-	"bugs": {
-		"url": "https://github.com/bitfocus/companion-module-ipl-ocp/issues"
 	},
 	"repository": {
 		"type": "git",

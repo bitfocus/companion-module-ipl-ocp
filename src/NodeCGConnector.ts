@@ -1,10 +1,11 @@
-import io, { Socket } from 'socket.io-client'
+import { io, Socket } from 'socket.io-client'
 import { isBlank } from './helpers/StringHelper'
 import EventEmitter from 'events'
 import TypedEventEmitter from 'typed-emitter'
 import * as ObjectPath from 'object-path'
 import { BundleMap, ReplicantMetadata, ReplicantOperation } from './types/replicant'
 import { ReplicantDeclareResponse, ReplicantSocketEventMap, ReplicantSocketMessageMap } from './types/replicantSocket'
+import { InstanceBase } from '@companion-module/base';
 
 interface NodeCGOptions {
   host?: string
@@ -40,10 +41,12 @@ export class NodeCGConnector<B extends BundleMap> extends (EventEmitter as new (
   readonly replicantNames: ReplicantDataMap<B>
   private opts: NodeCGOptions
   private socket: Socket<ReplicantSocketEventMap, ReplicantSocketMessageMap<B>> | undefined
+  private instance: InstanceBase<unknown>
 
-  constructor(opts: NodeCGOptions, replicants: ReplicantDataMap<B>) {
+  constructor(instance: InstanceBase<unknown>, opts: NodeCGOptions, replicants: ReplicantDataMap<B>) {
     super()
 
+    this.instance = instance
     this.replicantNames = replicants
     this.replicants = Object.keys(replicants).reduce((result, bundleName) => {
       result[bundleName] = {}
@@ -84,21 +87,29 @@ export class NodeCGConnector<B extends BundleMap> extends (EventEmitter as new (
 
     this.disconnect()
 
-    this.socket = io(`ws://${this.opts.host}:${this.opts.port}`, { reconnection: true } as any)
+    this.instance.log('info', 'socket declared');
+    this.socket = io(`ws://${this.opts.host}:${this.opts.port}`, { reconnection: true })
 
     this.socket.on('connect', () => {
       for (const [bundle, replicants] of Object.entries(this.replicantNames)) {
-        this.socket!.emit('joinRoom', `replicant:${bundle}`, () => {
+        this.socket!.emit('joinRoom', bundle, () => {
           replicants.forEach((replicant: string) => {
-            this.socket!.emit('replicant:declare', {
-              name: String(replicant),
-              namespace: bundle,
-              opts: this.replicantMetadata[bundle][replicant]
-            }, (data: ReplicantDeclareResponse<unknown>) => {
-              (this.replicants[bundle][replicant] as unknown) = data.value
-              this.replicantMetadata[bundle][replicant].revision = data.revision
-              this.replicantMetadata[bundle][replicant].schemaSum = data.schemaSum
-              this.emit('replicantUpdate', String(replicant))
+            this.socket!.emit('joinRoom', `replicant:${bundle}:${replicant}`, () => {
+              this.socket!.emit('replicant:declare', {
+                name: String(replicant),
+                namespace: bundle,
+                opts: this.replicantMetadata[bundle][replicant]
+              }, (err, data: ReplicantDeclareResponse<unknown>) => {
+                if (err) {
+                  this.instance.log('error', `Failed to declare replicant ${replicant}: ${err}`)
+                  return
+                }
+
+                (this.replicants[bundle][replicant] as unknown) = data.value
+                this.replicantMetadata[bundle][replicant].revision = data.revision
+                this.replicantMetadata[bundle][replicant].schemaSum = data.schemaSum
+                this.emit('replicantUpdate', String(replicant))
+              })
             })
           })
         })
@@ -107,22 +118,25 @@ export class NodeCGConnector<B extends BundleMap> extends (EventEmitter as new (
       this.emit('connect')
     })
 
-    this.socket.on('error', data => {
+    this.socket.on('connect_error', data => {
       this.emit('error', data)
     })
 
-    this.socket.on('replicant:assignment', data => {
+    this.socket.on('replicant:operations', async (data) => {
       if (this.shouldHandleReplicant(data.name, data.namespace)) {
-        (this.replicants[data.namespace][data.name] as unknown) = data.newValue
-        this.emit('replicantUpdate', data.name)
-      }
-    })
+        const metadata = this.replicantMetadata[data.namespace][data.name]
+        const expectedRevision = metadata.revision + 1
 
-    this.socket.on('replicant:operations', data => {
-      if (this.shouldHandleReplicant(data.name, data.namespace)) {
-        data.operations.forEach(operation => {
-          operation.result = NodeCGConnector.applyOperation(this.replicants[data.namespace][data.name], operation)
-        })
+        if (expectedRevision !== data.revision) {
+          this.instance.log('warn', `Expected revision for replicant ${data.name} to be ${expectedRevision}, but got ${data.revision}; forcing full update.`)
+          this.replicants[data.namespace][data.name] = await this.readReplicant(data.name, data.namespace)
+        } else {
+          data.operations.forEach(operation => {
+            operation.result = this.applyOperation(data.namespace, data.name, this.replicants[data.namespace][data.name], operation)
+          })
+        }
+
+        metadata.revision = data.revision
         this.emit('replicantUpdate', data.name)
       }
     })
@@ -137,6 +151,18 @@ export class NodeCGConnector<B extends BundleMap> extends (EventEmitter as new (
       this.socket.close()
       delete this.socket
     }
+  }
+
+  public async readReplicant<Bundle extends keyof B, Name extends keyof B[Bundle]>(name: Name, bundleName: Bundle): Promise<B[Bundle][Name]> {
+    return new Promise((resolve, reject) => {
+      this.socket!.emit('replicant:read', { namespace: String(bundleName), name: String(name) }, (err, value) => {
+        if (err) {
+          return reject(err)
+        } else {
+          return resolve(value as B[Bundle][Name])
+        }
+      })
+    })
   }
 
   public sendMessage(messageName: string, data?: unknown) {
@@ -170,20 +196,30 @@ export class NodeCGConnector<B extends BundleMap> extends (EventEmitter as new (
         revision: this.replicantMetadata[bundleName][name].revision,
         schemaSum: this.replicantMetadata[bundleName][name].schemaSum,
         opts: this.replicantMetadata[bundleName][name].opts,
+      }, (rejectReason, data) => {
+        const metadata = this.replicantMetadata[bundleName][name]
+
+        if (data?.schemaSum) {
+          metadata.schemaSum = data.schemaSum
+        }
+
+        if (data && data.revision !== metadata.revision) {
+          metadata.revision = data.revision;
+          (this.replicants[bundleName][name] as unknown) = data.value;
+          this.emit('replicantUpdate', String(name))
+        }
+
+        if (rejectReason) {
+          this.instance.log('error', `Replicant assignment rejected: ${rejectReason}`)
+        }
       })
     }
   }
 
   public proposeReplicantAssignment<Bundle extends keyof B, Rep extends keyof B[Bundle]>(name: Rep, bundleName: Bundle, newValue: B[Bundle][Rep]) {
-    if (this.socket != null && this.shouldHandleReplicant(String(name), String(bundleName))) {
-      this.socket.emit('replicant:proposeAssignment', {
-        name: String(name),
-        namespace: String(bundleName),
-        value: newValue,
-        schemaSum: this.replicantMetadata[bundleName][name].schemaSum,
-        opts: this.replicantMetadata[bundleName][name].opts,
-      })
-    }
+    this.proposeReplicantOperations(name, bundleName, [
+      { path: '/', method: 'overwrite', args: { newValue } }
+    ])
   }
 
   private static pathStrToPathArr(path: string): string[] {
@@ -202,27 +238,33 @@ export class NodeCGConnector<B extends BundleMap> extends (EventEmitter as new (
     return this.replicantNames[bundle]?.includes(name) ?? false
   }
 
-  private static applyOperation<T extends object>(replicant: T, operation: ReplicantOperation): T {
-    let result: T
+  private applyOperation<T extends object>(namespace: string, name: string, replicant: T, operation: ReplicantOperation): boolean {
+    let result
     const path = NodeCGConnector.pathStrToPathArr(operation.path)
     if (ARRAY_MUTATOR_METHODS.includes(operation.method)) {
       const arr = ObjectPath.get(replicant, path)
       result = arr[operation.method].apply(arr, operation.args)
     } else {
       switch (operation.method) {
+        case 'overwrite': {
+          this.replicants[namespace][name] = operation.args.newValue
+          result = true
+          break
+        }
+
         case 'add':
         case 'update': {
-          path.push(operation.args.prop)
+          path.push(operation.args.prop!)
 
           let { newValue } = operation.args
-          result = ObjectPath.set(replicant, path, newValue) as T
+          result = ObjectPath.set(replicant, path, newValue)
           break
         }
 
         case 'delete':
           if (path.length === 0 || ObjectPath.has(replicant, path)) {
             const target = ObjectPath.get(replicant, path)
-            delete target[operation.args.prop]
+            delete target[operation.args.prop!]
             result = target
           }
           break
