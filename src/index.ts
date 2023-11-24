@@ -181,7 +181,7 @@ class IPLOCInstance extends InstanceBase<IPLOCModuleConfig> {
         label: 'Target host',
         tooltip: 'The host of the NodeCG instance running IPL OCP',
         width: 6,
-        default: 'localhost',
+        default: '127.0.0.1',
       },
       {
         type: 'textinput',
