@@ -13,7 +13,7 @@
 			"email": "vlee@iplabs.ink"
 		},
 		{
-			"name": "Inkfarer",
+			"name": "inkfarer",
 			"email": "inkfarer@iplabs.ink"
 		}
 	],
@@ -22,7 +22,7 @@
 		"type": "node18",
 		"api": "nodejs-ipc",
 		"apiVersion": "0.0.0",
-		"entrypoint": "..\\dist\\index.js"
+		"entrypoint": "../dist/index.js"
 	},
 	"manufacturer": "Inkling Performance Labs",
 	"products": [
