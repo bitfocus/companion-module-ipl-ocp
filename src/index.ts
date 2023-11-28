@@ -697,7 +697,6 @@ class IPLOCInstance extends InstanceBase<IPLOCModuleConfig> {
           }
 
           const normalizedMinutes = Math.max(0, minutes)
-          // @ts-ignore: TypeScript doesn't understand the above null check
           const time = DateTime.fromISO(this.socket.replicants[DASHBOARD_BUNDLE_NAME].nextRoundStartTime.startTime)
             .plus({ minutes: normalizedMinutes })
             .toUTC()
