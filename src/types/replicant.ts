@@ -24,6 +24,6 @@ export interface ReplicantOperation {
   args: {
     prop?: string
     newValue: unknown
-  },
+  }
   result?: unknown
 }

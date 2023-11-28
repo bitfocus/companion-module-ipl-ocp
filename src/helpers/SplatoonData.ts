@@ -7,7 +7,7 @@ export const stageNameToShortStageName: Record<string, string> = {
   'Humpback Pump Track': 'Humpback',
   'Inkblot Art Academy': 'Inkblot',
   'Kelp Dome': 'Kelp',
-  'MakoMart': 'Mako',
+  MakoMart: 'Mako',
   'Manta Maria': 'Manta',
   'Moray Towers': 'Moray',
   'Musselforge Fitness': 'Musselforge',
@@ -23,14 +23,14 @@ export const stageNameToShortStageName: Record<string, string> = {
   'Wahoo World': 'Wahoo',
   'Walleye Warehouse': 'Walleye',
   'Skipper Pavilion': 'Skipper',
-  'Unknown Stage': '???'
+  'Unknown Stage': '???',
 }
 
 export const modeNameToShortModeName: Record<string, string> = {
   'Clam Blitz': 'CB',
   'Tower Control': 'TC',
-  'Rainmaker': 'RM',
+  Rainmaker: 'RM',
   'Splat Zones': 'SZ',
   'Turf War': 'TW',
-  'Unknown Mode': '??'
+  'Unknown Mode': '??',
 }

@@ -5,7 +5,8 @@
 	"scripts": {
 		"build": "rimraf dist && yarn build:main",
 		"build:main": "tsc -p tsconfig.build.json",
-		"build:watch": "tsc -p tsconfig.build.json --watch"
+		"build:watch": "tsc -p tsconfig.build.json --watch",
+		"format": "prettier -w ."
 	},
 	"license": "MIT",
 	"dependencies": {

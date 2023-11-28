@@ -13,8 +13,8 @@ export interface ReplicantDeclareResponse<T> {
 }
 
 interface NodeCallback<T = undefined> {
-  (err: string, response: undefined): void;
-  (err: undefined, response: T): void;
+  (err: string, response: undefined): void
+  (err: undefined, response: T): void
 }
 
 export interface ReplicantSocketMessageMap<R extends ReplicantMap> {
@@ -31,10 +31,10 @@ export interface ReplicantSocketMessageMap<R extends ReplicantMap> {
     cb: (
       rejectReason: string | undefined,
       data: {
-        value: any;
-        revision: number;
-        schema?: Record<string, any>;
-        schemaSum?: string;
+        value: any
+        revision: number
+        schema?: Record<string, any>
+        schemaSum?: string
       }
     ) => void
   ) => void
@@ -52,11 +52,11 @@ export interface ReplicantSocketMessageMap<R extends ReplicantMap> {
   ) => void
   'replicant:read': (
     request: {
-      name: string;
-      namespace: string;
+      name: string
+      namespace: string
     },
-    callback: NodeCallback<unknown>,
-  ) => void;
+    callback: NodeCallback<unknown>
+  ) => void
 }
 
 interface ReplicantAssignmentEvent {

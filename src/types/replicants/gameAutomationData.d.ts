@@ -6,10 +6,10 @@
  */
 
 export interface GameAutomationData {
-	actionInProgress?: 'END_GAME' | 'START_GAME' | 'NONE';
-	nextTaskForAction?: {
-		name: string;
-		index: number;
-		executionTimeMillis: number;
-	} | null;
+  actionInProgress?: 'END_GAME' | 'START_GAME' | 'NONE'
+  nextTaskForAction?: {
+    name: string
+    index: number
+    executionTimeMillis: number
+  } | null
 }

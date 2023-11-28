@@ -3,9 +3,10 @@ import {
   CompanionFeedbackDefinitions,
   InstanceBase,
   InstanceStatus,
-  Regex, runEntrypoint,
-  SomeCompanionConfigField
-} from '@companion-module/base';
+  Regex,
+  runEntrypoint,
+  SomeCompanionConfigField,
+} from '@companion-module/base'
 import { colord } from 'colord'
 import { DateTime } from 'luxon'
 import {
@@ -17,7 +18,7 @@ import {
   NextRoundStartTime,
   ObsData,
   ScoreboardData,
-  SwapColorsInternally
+  SwapColorsInternally,
 } from './types'
 import { modeNameToShortModeName, stageNameToShortStageName } from './helpers/SplatoonData'
 import { NodeCGConnector } from './NodeCGConnector'
@@ -55,7 +56,7 @@ function isEmpty(obj: {} | undefined) {
 }
 
 function isBlank(value?: string | null): boolean {
-  return value === null || value === undefined || value.trim() === '';
+  return value === null || value === undefined || value.trim() === ''
 }
 
 class IPLOCInstance extends InstanceBase<IPLOCModuleConfig> {
@@ -69,32 +70,32 @@ class IPLOCInstance extends InstanceBase<IPLOCModuleConfig> {
     this.setVariableDefinitions([
       {
         name: 'Alpha Team Score',
-        variableId: 'teams_alpha_score'
+        variableId: 'teams_alpha_score',
       },
       {
         name: 'Bravo Team Score',
-        variableId: 'teams_bravo_score'
+        variableId: 'teams_bravo_score',
       },
       {
         name: 'Alpha Team Name',
-        variableId: 'teams_alpha_name'
+        variableId: 'teams_alpha_name',
       },
       {
         name: 'Bravo Team Name',
-        variableId: 'teams_bravo_name'
+        variableId: 'teams_bravo_name',
       },
       {
         name: 'No. of games in set',
-        variableId: 'games_in_set'
+        variableId: 'games_in_set',
       },
       {
         name: 'The next mode to be played',
-        variableId: 'next_mode'
+        variableId: 'next_mode',
       },
       {
         name: 'The next stage to be played',
-        variableId: 'next_stage'
-      }
+        variableId: 'next_stage',
+      },
     ])
     this.setPresetDefinitions({
       nextStage: {
@@ -105,48 +106,52 @@ class IPLOCInstance extends InstanceBase<IPLOCModuleConfig> {
           text: 'Next: $(ocp:next_mode) $(ocp:next_stage)',
           size: 'auto',
           color: combineRgb(255, 255, 255),
-          bgcolor: combineRgb(0, 0, 0)
+          bgcolor: combineRgb(0, 0, 0),
         },
         feedbacks: [],
-        steps: []
-      }
+        steps: [],
+      },
     })
 
-    this.socket = new NodeCGConnector(this, {
-      host: config.host,
-      port: config.port
-    }, {
-      [DASHBOARD_BUNDLE_NAME]: [
-        'activeRound',
-        'scoreboardData',
-        'swapColorsInternally',
-        'activeBreakScene',
-        'musicShown',
-        'nextRoundStartTime',
-        'nextRound',
-        'obsData',
-        'gameAutomationData'
-      ]
-    })
+    this.socket = new NodeCGConnector(
+      this,
+      {
+        host: config.host,
+        port: config.port,
+      },
+      {
+        [DASHBOARD_BUNDLE_NAME]: [
+          'activeRound',
+          'scoreboardData',
+          'swapColorsInternally',
+          'activeBreakScene',
+          'musicShown',
+          'nextRoundStartTime',
+          'nextRound',
+          'obsData',
+          'gameAutomationData',
+        ],
+      }
+    )
 
     this.socket.on('connect', () => {
       this.checkFeedbacks('nodecg_connection_status')
       this.log('debug', `Connection opened`)
-      this.updateStatus(InstanceStatus.Ok);
+      this.updateStatus(InstanceStatus.Ok)
     })
 
-    this.socket.on('disconnect', reason => {
+    this.socket.on('disconnect', (reason) => {
       this.checkFeedbacks('nodecg_connection_status')
       const msg = `NodeCG connection closed. Reason: ${reason}`
       this.log('debug', msg)
       this.updateStatus(InstanceStatus.Disconnected, msg)
     })
 
-    this.socket.on('error', err => {
+    this.socket.on('error', (err) => {
       this.log('error', `Socket.io error: ${err}`)
     })
 
-    this.socket.on('replicantUpdate', name => {
+    this.socket.on('replicantUpdate', (name) => {
       this.assignDynamicVariablesAndFeedback(name as keyof ReplicantMap)
     })
 
@@ -162,7 +167,7 @@ class IPLOCInstance extends InstanceBase<IPLOCModuleConfig> {
     this.updateStatus(InstanceStatus.Connecting)
     this.socket?.updateConfig({
       host: config.host,
-      port: config.port
+      port: config.port,
     })
   }
 
@@ -203,7 +208,9 @@ class IPLOCInstance extends InstanceBase<IPLOCModuleConfig> {
     switch (replicantName) {
       case 'activeRound':
         if (!isEmpty(this.socket.replicants[DASHBOARD_BUNDLE_NAME]['activeRound'])) {
-          const nextGame = this.socket.replicants[DASHBOARD_BUNDLE_NAME].activeRound?.games.find(game => game.winner === 'none')
+          const nextGame = this.socket.replicants[DASHBOARD_BUNDLE_NAME].activeRound?.games.find(
+            (game) => game.winner === 'none'
+          )
 
           this.setVariableValues({
             teams_alpha_score: String(this.socket.replicants[DASHBOARD_BUNDLE_NAME]['activeRound']?.teamA.score),
@@ -211,8 +218,8 @@ class IPLOCInstance extends InstanceBase<IPLOCModuleConfig> {
             teams_alpha_name: this.socket.replicants[DASHBOARD_BUNDLE_NAME]['activeRound']?.teamA.name,
             teams_bravo_name: this.socket.replicants[DASHBOARD_BUNDLE_NAME]['activeRound']?.teamB.name,
             games_in_set: String(this.socket.replicants[DASHBOARD_BUNDLE_NAME]['activeRound']?.games.length),
-            next_mode: nextGame?.mode == null ? '??' : (modeNameToShortModeName[nextGame.mode] ?? nextGame.mode),
-            next_stage: nextGame?.stage == null ? '???' : (stageNameToShortStageName[nextGame.stage] ?? nextGame.stage),
+            next_mode: nextGame?.mode == null ? '??' : modeNameToShortModeName[nextGame.mode] ?? nextGame.mode,
+            next_stage: nextGame?.stage == null ? '???' : stageNameToShortStageName[nextGame.stage] ?? nextGame.stage,
           })
         }
         this.checkFeedbacks('team_colour')
@@ -366,49 +373,56 @@ class IPLOCInstance extends InstanceBase<IPLOCModuleConfig> {
     feedbacks['automation_action_state'] = {
       type: 'advanced',
       name: 'Automation action state',
-      description: 'Changes this toggle\'s color and text to reflect the dashboard\'s automation action state.',
+      description: "Changes this toggle's color and text to reflect the dashboard's automation action state.",
       options: [],
       callback: () => {
         if (this.socket.replicants[DASHBOARD_BUNDLE_NAME].obsData?.status !== 'CONNECTED') {
           return {
             text: 'OFF',
             bgcolor: combineRgb(0, 0, 0),
-            color: combineRgb(255, 255, 255)
+            color: combineRgb(255, 255, 255),
           }
         }
 
-        const nextTaskName = this.socket.replicants[DASHBOARD_BUNDLE_NAME].gameAutomationData?.nextTaskForAction?.name ?? ''
-        if (this.socket.replicants[DASHBOARD_BUNDLE_NAME].gameAutomationData?.actionInProgress !== 'NONE' && !isBlank(nextTaskName)) {
+        const nextTaskName =
+          this.socket.replicants[DASHBOARD_BUNDLE_NAME].gameAutomationData?.nextTaskForAction?.name ?? ''
+        if (
+          this.socket.replicants[DASHBOARD_BUNDLE_NAME].gameAutomationData?.actionInProgress !== 'NONE' &&
+          !isBlank(nextTaskName)
+        ) {
           return {
-            text: {
-              changeScene: 'CHANGE SCENE',
-              showScoreboard: 'SHOW SB',
-              showCasters: 'SHOW CASTERS',
-              hideScoreboard: 'HIDE SB'
-            }[nextTaskName] ?? nextTaskName,
+            text:
+              {
+                changeScene: 'CHANGE SCENE',
+                showScoreboard: 'SHOW SB',
+                showCasters: 'SHOW CASTERS',
+                hideScoreboard: 'HIDE SB',
+              }[nextTaskName] ?? nextTaskName,
             size: ['showScoreboard', 'hideScoreboard'].includes(nextTaskName) ? '18' : 'auto',
             bgcolor: combineRgb(0, 0, 0),
-            color: combineRgb(255, 255, 255)
+            color: combineRgb(255, 255, 255),
           }
         } else {
-          return this.socket.replicants[DASHBOARD_BUNDLE_NAME].obsData?.gameplayScene === this.socket.replicants[DASHBOARD_BUNDLE_NAME].obsData?.currentScene
+          return this.socket.replicants[DASHBOARD_BUNDLE_NAME].obsData?.gameplayScene ===
+            this.socket.replicants[DASHBOARD_BUNDLE_NAME].obsData?.currentScene
             ? {
-              text: 'END GAME',
-              bgcolor: combineRgb(255, 0, 0),
-              color: combineRgb(255, 255, 255)
-            } : {
-              text: 'START GAME',
-              bgcolor: combineRgb(0, 255, 0),
-              color: combineRgb(0, 0, 0)
-            }
+                text: 'END GAME',
+                bgcolor: combineRgb(255, 0, 0),
+                color: combineRgb(255, 255, 255),
+              }
+            : {
+                text: 'START GAME',
+                bgcolor: combineRgb(0, 255, 0),
+                color: combineRgb(0, 0, 0),
+              }
         }
-      }
+      },
     }
 
     feedbacks['nodecg_connection_status'] = {
       type: 'advanced',
       name: 'NodeCG connection status',
-      description: 'Changes this toggle\'s color and text to reflect the NodeCG connection status',
+      description: "Changes this toggle's color and text to reflect the NodeCG connection status",
       options: [],
       callback: () => {
         if (this.socket != null && this.socket.isConnected()) {
@@ -416,17 +430,17 @@ class IPLOCInstance extends InstanceBase<IPLOCModuleConfig> {
             color: combineRgb(0, 0, 0),
             bgcolor: combineRgb(0, 255, 0),
             text: 'NODECG READY',
-            size: '14'
+            size: '14',
           }
         } else {
           return {
             color: combineRgb(255, 255, 255),
             bgcolor: combineRgb(255, 0, 0),
             text: 'NODECG OFF',
-            size: '14'
+            size: '14',
           }
         }
-      }
+      },
     }
 
     this.setFeedbackDefinitions(feedbacks)
@@ -492,7 +506,11 @@ class IPLOCInstance extends InstanceBase<IPLOCModuleConfig> {
         name: 'Swap scoreboard color.',
         options: [],
         callback: () => {
-          this.socket.proposeReplicantAssignment('swapColorsInternally', DASHBOARD_BUNDLE_NAME, !this.socket.replicants[DASHBOARD_BUNDLE_NAME]['swapColorsInternally'])
+          this.socket.proposeReplicantAssignment(
+            'swapColorsInternally',
+            DASHBOARD_BUNDLE_NAME,
+            !this.socket.replicants[DASHBOARD_BUNDLE_NAME]['swapColorsInternally']
+          )
         },
       },
       cycle_colour: {
@@ -580,7 +598,11 @@ class IPLOCInstance extends InstanceBase<IPLOCModuleConfig> {
             newScene !== this.socket.replicants[DASHBOARD_BUNDLE_NAME]['activeBreakScene'] &&
             ['main', 'teams', 'stages'].includes(newScene)
           ) {
-            this.socket.proposeReplicantAssignment('activeBreakScene', DASHBOARD_BUNDLE_NAME, newScene as ActiveBreakScene)
+            this.socket.proposeReplicantAssignment(
+              'activeBreakScene',
+              DASHBOARD_BUNDLE_NAME,
+              newScene as ActiveBreakScene
+            )
           }
         },
       },
@@ -601,9 +623,17 @@ class IPLOCInstance extends InstanceBase<IPLOCModuleConfig> {
         ],
         callback: (action) => {
           if (action.options.change === 'hide' || action.options.change === 'show') {
-            this.socket.proposeReplicantAssignment('musicShown', DASHBOARD_BUNDLE_NAME, action.options.change === 'show')
+            this.socket.proposeReplicantAssignment(
+              'musicShown',
+              DASHBOARD_BUNDLE_NAME,
+              action.options.change === 'show'
+            )
           } else {
-            this.socket.proposeReplicantAssignment('musicShown', DASHBOARD_BUNDLE_NAME, !this.socket.replicants[DASHBOARD_BUNDLE_NAME]['musicShown'])
+            this.socket.proposeReplicantAssignment(
+              'musicShown',
+              DASHBOARD_BUNDLE_NAME,
+              !this.socket.replicants[DASHBOARD_BUNDLE_NAME]['musicShown']
+            )
           }
         },
       },
@@ -615,8 +645,9 @@ class IPLOCInstance extends InstanceBase<IPLOCModuleConfig> {
             useVariables: true,
             label: '+ Minutes',
             id: 'minutes',
-            tooltip: 'How many minutes in the future you want the time set to. Must be numeric, may be a variable reference.',
-            default: '5'
+            tooltip:
+              'How many minutes in the future you want the time set to. Must be numeric, may be a variable reference.',
+            default: '5',
           },
         ],
         callback: async (action) => {
@@ -651,7 +682,7 @@ class IPLOCInstance extends InstanceBase<IPLOCModuleConfig> {
             label: '+ Minutes',
             id: 'minutes',
             tooltip: 'How many minutes to add to the timer. Must be numeric, may be a variable reference.',
-            default: '1'
+            default: '1',
           },
         ],
         callback: async (action) => {
@@ -667,7 +698,10 @@ class IPLOCInstance extends InstanceBase<IPLOCModuleConfig> {
 
           const normalizedMinutes = Math.max(0, minutes)
           // @ts-ignore: TypeScript doesn't understand the above null check
-          const time = DateTime.fromISO(this.socket.replicants[DASHBOARD_BUNDLE_NAME].nextRoundStartTime.startTime).plus({ minutes: normalizedMinutes }).toUTC().toISO()
+          const time = DateTime.fromISO(this.socket.replicants[DASHBOARD_BUNDLE_NAME].nextRoundStartTime.startTime)
+            .plus({ minutes: normalizedMinutes })
+            .toUTC()
+            .toISO()
           this.socket.proposeReplicantOperations('nextRoundStartTime', DASHBOARD_BUNDLE_NAME, [
             {
               path: '/',
@@ -771,23 +805,30 @@ class IPLOCInstance extends InstanceBase<IPLOCModuleConfig> {
             return
           }
 
-          const nextTaskName = this.socket.replicants[DASHBOARD_BUNDLE_NAME].gameAutomationData?.nextTaskForAction?.name ?? ''
-          if (this.socket.replicants[DASHBOARD_BUNDLE_NAME].gameAutomationData?.actionInProgress !== 'NONE' && !isBlank(nextTaskName)) {
+          const nextTaskName =
+            this.socket.replicants[DASHBOARD_BUNDLE_NAME].gameAutomationData?.nextTaskForAction?.name ?? ''
+          if (
+            this.socket.replicants[DASHBOARD_BUNDLE_NAME].gameAutomationData?.actionInProgress !== 'NONE' &&
+            !isBlank(nextTaskName)
+          ) {
             this.socket.sendMessage('fastForwardToNextGameAutomationTask')
-          } else if (this.socket.replicants[DASHBOARD_BUNDLE_NAME].obsData?.gameplayScene === this.socket.replicants[DASHBOARD_BUNDLE_NAME].obsData?.currentScene) {
+          } else if (
+            this.socket.replicants[DASHBOARD_BUNDLE_NAME].obsData?.gameplayScene ===
+            this.socket.replicants[DASHBOARD_BUNDLE_NAME].obsData?.currentScene
+          ) {
             this.socket.sendMessage('endGame')
           } else {
             this.socket.sendMessage('startGame')
           }
-        }
+        },
       },
       reconnect: {
         name: 'Reconnect to NodeCG',
         options: [],
         callback: () => {
           this.socket.start()
-        }
-      }
+        },
+      },
     })
   }
 }

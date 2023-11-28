@@ -1,13 +1,15 @@
 # IPL Overlay Control Panel Module
 
 This Module allows for control and feedback from Inkling Performance Labs' Overlays Control Panel instance ran locally.
-*This module does not support nodeCG instances with login enabled*
+_This module does not support nodeCG instances with login enabled_
 
 ### Configuration
+
 - `NodeCG host`: URL to IPL OCP NodeCG instance.
-- `Port`: The Port NodeCG is running on. (*default is `9090`*)
+- `Port`: The Port NodeCG is running on. (_default is `9090`_)
 
 ### Available Actions
+
 - Set game win for team
 - Remove win from last team set
 - Cycle colour used on scoreboard
@@ -23,6 +25,7 @@ This Module allows for control and feedback from Inkling Performance Labs' Overl
 - Begin next match
 
 ### Available Feedback
+
 - Team Colour
 - Main Scene Visibility
 - Scoreboard Visibility
@@ -30,6 +33,7 @@ This Module allows for control and feedback from Inkling Performance Labs' Overl
 - Timer Visibility
 
 ### Available Dynamic Fields
+
 - Team Scores
 - Team Names
 - Number of games in current set
