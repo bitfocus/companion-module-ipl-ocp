@@ -22,6 +22,7 @@ import {
 } from './types'
 import { modeNameToShortModeName, stageNameToShortStageName } from './helpers/SplatoonData'
 import { NodeCGConnector } from './NodeCGConnector'
+import { isBlank } from './helpers/StringHelper'
 
 const DASHBOARD_BUNDLE_NAME = 'ipl-overlay-controls'
 
@@ -53,10 +54,6 @@ interface ReplicantMap {
  */
 function isEmpty(obj: {} | undefined) {
   return obj != null && Object.keys(obj).length === 0
-}
-
-function isBlank(value?: string | null): boolean {
-  return value === null || value === undefined || value.trim() === ''
 }
 
 class IPLOCInstance extends InstanceBase<IPLOCModuleConfig> {
