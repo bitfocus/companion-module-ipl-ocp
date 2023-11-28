@@ -1,9 +1,12 @@
 {
-  "extends": "./tsconfig.build.json",
-  "include": ["src/**/*.ts", "dump-model.ts"],
-  "exclude": ["node_modules/**"],
+  "extends": "@companion-module/tools/tsconfig/node18/recommended",
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules/**", "src/**/*spec.ts", "src/**/__tests__/*", "src/**/__mocks__/*"],
   "compilerOptions": {
-    "types": ["jest", "node"],
-    "esModuleInterop": true
+    "outDir": "./dist",
+    "baseUrl": "./",
+    "paths": {
+      "*": ["./node_modules/*"]
+    }
   }
 }

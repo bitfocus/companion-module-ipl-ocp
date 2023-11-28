@@ -4,8 +4,8 @@
 	"main": "dist/index.js",
 	"scripts": {
 		"build": "rimraf dist && yarn build:main",
-		"build:main": "tsc -p tsconfig.build.json",
-		"build:watch": "tsc -p tsconfig.build.json --watch",
+		"build:main": "tsc",
+		"build:watch": "tsc --watch",
 		"format": "prettier -w ."
 	},
 	"license": "MIT",
@@ -25,7 +25,7 @@
 		"@types/object-path": "^0.11.1",
 		"prettier": "2.5.1",
 		"rimraf": "^5.0.5",
-		"typescript": "~4.5"
+		"typescript": "~5.3"
 	},
 	"repository": {
 		"type": "git",
