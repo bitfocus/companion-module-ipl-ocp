@@ -1,6 +1,5 @@
 import {
   combineRgb,
-  CompanionFeedbackDefinitions,
   InstanceBase,
   InstanceStatus,
   Regex,
@@ -33,6 +32,17 @@ interface IPLOCModuleConfig {
 
 type IPLOCBundleMap = {
   [DASHBOARD_BUNDLE_NAME]: ReplicantMap
+}
+
+enum IPLOCFeedback {
+  team_colour = 'team_colour',
+  scoreboard_visibility = 'scoreboard_visibility',
+  music_visibility = 'music_visibility',
+  timer_visibility = 'timer_visibility',
+  show_next_match_on_stream = 'show_next_match_on_stream',
+  break_scene_visibility = 'break_scene_visibility',
+  automation_action_state = 'automation_action_state',
+  nodecg_connection_status = 'nodecg_connection_status',
 }
 
 interface ReplicantMap {
@@ -132,13 +142,13 @@ class IPLOCInstance extends InstanceBase<IPLOCModuleConfig> {
     )
 
     this.socket.on('connect', () => {
-      this.checkFeedbacks('nodecg_connection_status')
+      this.checkFeedbacks(IPLOCFeedback.nodecg_connection_status)
       this.log('debug', `Connection opened`)
       this.updateStatus(InstanceStatus.Ok)
     })
 
     this.socket.on('disconnect', (reason) => {
-      this.checkFeedbacks('nodecg_connection_status')
+      this.checkFeedbacks(IPLOCFeedback.nodecg_connection_status)
       const msg = `NodeCG connection closed. Reason: ${reason}`
       this.log('debug', msg)
       this.updateStatus(InstanceStatus.Disconnected, msg)
@@ -219,228 +229,226 @@ class IPLOCInstance extends InstanceBase<IPLOCModuleConfig> {
             next_stage: nextGame?.stage == null ? '???' : stageNameToShortStageName[nextGame.stage] ?? nextGame.stage,
           })
         }
-        this.checkFeedbacks('team_colour')
+        this.checkFeedbacks(IPLOCFeedback.team_colour)
         break
       case 'scoreboardData':
-        this.checkFeedbacks('scoreboard_visibility')
+        this.checkFeedbacks(IPLOCFeedback.scoreboard_visibility)
         break
       case 'nextRoundStartTime':
-        this.checkFeedbacks('timer_visibility')
+        this.checkFeedbacks(IPLOCFeedback.timer_visibility)
         break
       case 'musicShown':
-        this.checkFeedbacks('music_visibility')
+        this.checkFeedbacks(IPLOCFeedback.music_visibility)
         break
       case 'activeBreakScene':
-        this.checkFeedbacks('break_scene_visibility')
+        this.checkFeedbacks(IPLOCFeedback.break_scene_visibility)
         break
       case 'nextRound':
-        this.checkFeedbacks('show_next_match_on_stream')
+        this.checkFeedbacks(IPLOCFeedback.show_next_match_on_stream)
         break
       case 'gameAutomationData':
       case 'obsData':
-        this.checkFeedbacks('automation_action_state')
+        this.checkFeedbacks(IPLOCFeedback.automation_action_state)
         break
     }
   }
 
   initFeedbacks() {
-    let feedbacks: CompanionFeedbackDefinitions = {}
-    let self = this
-
-    feedbacks['team_colour'] = {
-      type: 'advanced',
-      name: 'Change BG colour to teams colour',
-      description: 'Change colour of background when updated.',
-      options: [
-        {
-          type: 'dropdown',
-          label: 'Team',
-          id: 'team',
-          default: 'teamA',
-          choices: [
-            { id: 'teamA', label: 'Alpha Team' },
-            { id: 'teamB', label: 'Bravo Team' },
-          ],
-        },
-      ],
-      callback: function (feedback) {
-        const activeRound = self.socket.replicants[DASHBOARD_BUNDLE_NAME].activeRound
-        if (!isEmpty(activeRound)) {
-          const teamColor = activeRound?.[feedback.options.team as 'teamA' | 'teamB'].color
-          if (teamColor != null) {
-            const bgcolour = colord(teamColor).toRgb()
-            // Choose what text colour to use for feedback depending on the background colour
-            const colour = (bgcolour.r * 299 + bgcolour.g * 587 + bgcolour.b * 114) / 1000 >= 128 ? 30 : 230
-            return {
-              bgcolor: combineRgb(bgcolour.r, bgcolour.g, bgcolour.b),
-              color: combineRgb(colour, colour, colour),
+    const self = this
+    this.setFeedbackDefinitions({
+      [IPLOCFeedback.team_colour]: {
+        type: 'advanced',
+        name: 'Change BG colour to teams colour',
+        description: 'Change colour of background when updated.',
+        options: [
+          {
+            type: 'dropdown',
+            label: 'Team',
+            id: 'team',
+            default: 'teamA',
+            choices: [
+              { id: 'teamA', label: 'Alpha Team' },
+              { id: 'teamB', label: 'Bravo Team' },
+            ],
+          },
+        ],
+        callback: function (feedback) {
+          const activeRound = self.socket.replicants[DASHBOARD_BUNDLE_NAME].activeRound
+          if (!isEmpty(activeRound)) {
+            const teamColor = activeRound?.[feedback.options.team as 'teamA' | 'teamB'].color
+            if (teamColor != null) {
+              const bgcolour = colord(teamColor).toRgb()
+              // Choose what text colour to use for feedback depending on the background colour
+              const colour = (bgcolour.r * 299 + bgcolour.g * 587 + bgcolour.b * 114) / 1000 >= 128 ? 30 : 230
+              return {
+                bgcolor: combineRgb(bgcolour.r, bgcolour.g, bgcolour.b),
+                color: combineRgb(colour, colour, colour),
+              }
             }
           }
-        }
-        return {}
-      },
-    }
-
-    feedbacks['scoreboard_visibility'] = {
-      type: 'boolean',
-      name: 'Scoreboard Visibility',
-      description: 'Change background colour when scoreboard is visible.',
-      defaultStyle: {
-        bgcolor: combineRgb(0, 255, 0),
-      },
-      options: [],
-      callback: function () {
-        const scoreboardData = self.socket.replicants[DASHBOARD_BUNDLE_NAME]['scoreboardData']
-        if (scoreboardData?.isVisible != null) {
-          return scoreboardData.isVisible
-        }
-
-        return false
-      },
-    }
-
-    feedbacks['music_visibility'] = {
-      type: 'boolean',
-      name: 'Music Visibility',
-      description: 'Change background colour when music is visible.',
-      defaultStyle: {
-        bgcolor: combineRgb(0, 255, 0),
-      },
-      options: [],
-      callback: function () {
-        return self.socket.replicants[DASHBOARD_BUNDLE_NAME]['musicShown'] ?? false
-      },
-    }
-
-    feedbacks['timer_visibility'] = {
-      type: 'boolean',
-      name: 'Timer Visibility',
-      description: 'Change background colour when timer is visible.',
-      defaultStyle: {
-        bgcolor: combineRgb(0, 255, 0),
-      },
-      options: [],
-      callback: function () {
-        return self.socket.replicants[DASHBOARD_BUNDLE_NAME].nextRoundStartTime?.isVisible ?? false
-      },
-    }
-
-    feedbacks['show_next_match_on_stream'] = {
-      type: 'boolean',
-      name: 'Next Match Visibility',
-      description: 'Change background colour when Next match is on stream.',
-      defaultStyle: {
-        bgcolor: combineRgb(0, 255, 0),
-      },
-      options: [],
-      callback: function () {
-        return self.socket.replicants[DASHBOARD_BUNDLE_NAME].nextRound?.showOnStream ?? false
-      },
-    }
-
-    feedbacks['break_scene_visibility'] = {
-      type: 'boolean',
-      name: 'Break Scene Visibility',
-      description: 'Change background colour when selected break scene is visible.',
-      defaultStyle: {
-        bgcolor: combineRgb(0, 255, 0),
-      },
-      options: [
-        {
-          type: 'dropdown',
-          label: 'scene',
-          id: 'scene',
-          default: 'main',
-          choices: [
-            { id: 'main', label: 'Main' },
-            { id: 'teams', label: 'Teams' },
-            { id: 'stages', label: 'Stages' },
-          ],
+          return {}
         },
-      ],
-      callback: function (feedback) {
-        if (!isEmpty(self.socket.replicants[DASHBOARD_BUNDLE_NAME]['activeBreakScene'])) {
-          return self.socket.replicants[DASHBOARD_BUNDLE_NAME]['activeBreakScene'] === feedback.options.scene
-        }
-
-        return false
       },
-    }
 
-    feedbacks['automation_action_state'] = {
-      type: 'advanced',
-      name: 'Automation action state',
-      description: "Changes this toggle's color and text to reflect the dashboard's automation action state.",
-      options: [],
-      callback: () => {
-        if (this.socket.replicants[DASHBOARD_BUNDLE_NAME].obsData?.status !== 'CONNECTED') {
-          return {
-            text: 'OFF',
-            bgcolor: combineRgb(0, 0, 0),
-            color: combineRgb(255, 255, 255),
+      [IPLOCFeedback.scoreboard_visibility]: {
+        type: 'boolean',
+        name: 'Scoreboard Visibility',
+        description: 'Change background colour when scoreboard is visible.',
+        defaultStyle: {
+          bgcolor: combineRgb(0, 255, 0),
+        },
+        options: [],
+        callback: function () {
+          const scoreboardData = self.socket.replicants[DASHBOARD_BUNDLE_NAME]['scoreboardData']
+          if (scoreboardData?.isVisible != null) {
+            return scoreboardData.isVisible
           }
-        }
 
-        const nextTaskName =
-          this.socket.replicants[DASHBOARD_BUNDLE_NAME].gameAutomationData?.nextTaskForAction?.name ?? ''
-        if (
-          this.socket.replicants[DASHBOARD_BUNDLE_NAME].gameAutomationData?.actionInProgress !== 'NONE' &&
-          !isBlank(nextTaskName)
-        ) {
-          return {
-            text:
-              {
-                changeScene: 'CHANGE SCENE',
-                showScoreboard: 'SHOW SB',
-                showCasters: 'SHOW CASTERS',
-                hideScoreboard: 'HIDE SB',
-              }[nextTaskName] ?? nextTaskName,
-            size: ['showScoreboard', 'hideScoreboard'].includes(nextTaskName) ? '18' : 'auto',
-            bgcolor: combineRgb(0, 0, 0),
-            color: combineRgb(255, 255, 255),
-          }
-        } else {
-          return this.socket.replicants[DASHBOARD_BUNDLE_NAME].obsData?.gameplayScene ===
-            this.socket.replicants[DASHBOARD_BUNDLE_NAME].obsData?.currentScene
-            ? {
-                text: 'END GAME',
-                bgcolor: combineRgb(255, 0, 0),
-                color: combineRgb(255, 255, 255),
-              }
-            : {
-                text: 'START GAME',
-                bgcolor: combineRgb(0, 255, 0),
-                color: combineRgb(0, 0, 0),
-              }
-        }
+          return false
+        },
       },
-    }
 
-    feedbacks['nodecg_connection_status'] = {
-      type: 'advanced',
-      name: 'NodeCG connection status',
-      description: "Changes this toggle's color and text to reflect the NodeCG connection status",
-      options: [],
-      callback: () => {
-        if (this.socket != null && this.socket.isConnected()) {
-          return {
-            color: combineRgb(0, 0, 0),
-            bgcolor: combineRgb(0, 255, 0),
-            text: 'NODECG READY',
-            size: '14',
-          }
-        } else {
-          return {
-            color: combineRgb(255, 255, 255),
-            bgcolor: combineRgb(255, 0, 0),
-            text: 'NODECG OFF',
-            size: '14',
-          }
-        }
+      [IPLOCFeedback.music_visibility]: {
+        type: 'boolean',
+        name: 'Music Visibility',
+        description: 'Change background colour when music is visible.',
+        defaultStyle: {
+          bgcolor: combineRgb(0, 255, 0),
+        },
+        options: [],
+        callback: function () {
+          return self.socket.replicants[DASHBOARD_BUNDLE_NAME]['musicShown'] ?? false
+        },
       },
-    }
 
-    this.setFeedbackDefinitions(feedbacks)
+      [IPLOCFeedback.timer_visibility]: {
+        type: 'boolean',
+        name: 'Timer Visibility',
+        description: 'Change background colour when timer is visible.',
+        defaultStyle: {
+          bgcolor: combineRgb(0, 255, 0),
+        },
+        options: [],
+        callback: function () {
+          return self.socket.replicants[DASHBOARD_BUNDLE_NAME].nextRoundStartTime?.isVisible ?? false
+        },
+      },
+
+      [IPLOCFeedback.show_next_match_on_stream]: {
+        type: 'boolean',
+        name: 'Next Match Visibility',
+        description: 'Change background colour when Next match is on stream.',
+        defaultStyle: {
+          bgcolor: combineRgb(0, 255, 0),
+        },
+        options: [],
+        callback: function () {
+          return self.socket.replicants[DASHBOARD_BUNDLE_NAME].nextRound?.showOnStream ?? false
+        },
+      },
+
+      [IPLOCFeedback.break_scene_visibility]: {
+        type: 'boolean',
+        name: 'Break Scene Visibility',
+        description: 'Change background colour when selected break scene is visible.',
+        defaultStyle: {
+          bgcolor: combineRgb(0, 255, 0),
+        },
+        options: [
+          {
+            type: 'dropdown',
+            label: 'scene',
+            id: 'scene',
+            default: 'main',
+            choices: [
+              { id: 'main', label: 'Main' },
+              { id: 'teams', label: 'Teams' },
+              { id: 'stages', label: 'Stages' },
+            ],
+          },
+        ],
+        callback: function (feedback) {
+          if (!isEmpty(self.socket.replicants[DASHBOARD_BUNDLE_NAME]['activeBreakScene'])) {
+            return self.socket.replicants[DASHBOARD_BUNDLE_NAME]['activeBreakScene'] === feedback.options.scene
+          }
+
+          return false
+        },
+      },
+
+      [IPLOCFeedback.automation_action_state]: {
+        type: 'advanced',
+        name: 'Automation action state',
+        description: "Changes this toggle's color and text to reflect the dashboard's automation action state.",
+        options: [],
+        callback: () => {
+          if (this.socket.replicants[DASHBOARD_BUNDLE_NAME].obsData?.status !== 'CONNECTED') {
+            return {
+              text: 'OFF',
+              bgcolor: combineRgb(0, 0, 0),
+              color: combineRgb(255, 255, 255),
+            }
+          }
+
+          const nextTaskName =
+            this.socket.replicants[DASHBOARD_BUNDLE_NAME].gameAutomationData?.nextTaskForAction?.name ?? ''
+          if (
+            this.socket.replicants[DASHBOARD_BUNDLE_NAME].gameAutomationData?.actionInProgress !== 'NONE' &&
+            !isBlank(nextTaskName)
+          ) {
+            return {
+              text:
+                {
+                  changeScene: 'CHANGE SCENE',
+                  showScoreboard: 'SHOW SB',
+                  showCasters: 'SHOW CASTERS',
+                  hideScoreboard: 'HIDE SB',
+                }[nextTaskName] ?? nextTaskName,
+              size: ['showScoreboard', 'hideScoreboard'].includes(nextTaskName) ? '18' : 'auto',
+              bgcolor: combineRgb(0, 0, 0),
+              color: combineRgb(255, 255, 255),
+            }
+          } else {
+            return this.socket.replicants[DASHBOARD_BUNDLE_NAME].obsData?.gameplayScene ===
+              this.socket.replicants[DASHBOARD_BUNDLE_NAME].obsData?.currentScene
+              ? {
+                  text: 'END GAME',
+                  bgcolor: combineRgb(255, 0, 0),
+                  color: combineRgb(255, 255, 255),
+                }
+              : {
+                  text: 'START GAME',
+                  bgcolor: combineRgb(0, 255, 0),
+                  color: combineRgb(0, 0, 0),
+                }
+          }
+        },
+      },
+
+      [IPLOCFeedback.nodecg_connection_status]: {
+        type: 'advanced',
+        name: 'NodeCG connection status',
+        description: "Changes this toggle's color and text to reflect the NodeCG connection status",
+        options: [],
+        callback: () => {
+          if (this.socket != null && this.socket.isConnected()) {
+            return {
+              color: combineRgb(0, 0, 0),
+              bgcolor: combineRgb(0, 255, 0),
+              text: 'NODECG READY',
+              size: '14',
+            }
+          } else {
+            return {
+              color: combineRgb(255, 255, 255),
+              bgcolor: combineRgb(255, 0, 0),
+              text: 'NODECG OFF',
+              size: '14',
+            }
+          }
+        },
+      },
+    })
   }
 
   actions() {
