@@ -1,7 +1,6 @@
 import {
   combineRgb,
   InstanceBase,
-  InstanceStatus,
   Regex,
   runEntrypoint,
   SomeCompanionConfigField,
@@ -42,7 +41,6 @@ enum IPLOCFeedback {
   show_next_match_on_stream = 'show_next_match_on_stream',
   break_scene_visibility = 'break_scene_visibility',
   automation_action_state = 'automation_action_state',
-  nodecg_connection_status = 'nodecg_connection_status',
 }
 
 interface ReplicantMap {
@@ -70,10 +68,6 @@ class IPLOCInstance extends InstanceBase<IPLOCModuleConfig> {
   private socket!: NodeCGConnector<IPLOCBundleMap>
 
   public async init(config: IPLOCModuleConfig): Promise<void> {
-    this.initFeedbacks()
-    this.actions()
-    this.subscribeFeedbacks()
-
     this.setVariableDefinitions([
       {
         name: 'Alpha Team Score',
@@ -141,24 +135,13 @@ class IPLOCInstance extends InstanceBase<IPLOCModuleConfig> {
       }
     )
 
-    this.socket.on('connect', () => {
-      this.checkFeedbacks(IPLOCFeedback.nodecg_connection_status)
-      this.log('debug', `Connection opened`)
-      this.updateStatus(InstanceStatus.Ok)
-    })
-
-    this.socket.on('disconnect', (reason) => {
-      this.checkFeedbacks(IPLOCFeedback.nodecg_connection_status)
-      const msg = `NodeCG connection closed. Reason: ${reason}`
-      this.log('debug', msg)
-      this.updateStatus(InstanceStatus.Disconnected, msg)
-    })
+    this.initFeedbacks()
+    this.initActions()
 
     this.socket.on('replicantUpdate', (name) => {
       this.assignDynamicVariablesAndFeedback(name as keyof ReplicantMap)
     })
 
-    this.updateStatus(InstanceStatus.Connecting)
     this.socket.start()
   }
 
@@ -167,7 +150,6 @@ class IPLOCInstance extends InstanceBase<IPLOCModuleConfig> {
   }
 
   public async configUpdated(config: IPLOCModuleConfig): Promise<void> {
-    this.updateStatus(InstanceStatus.Connecting)
     this.socket?.updateConfig({
       host: config.host,
       port: config.port,
@@ -252,6 +234,7 @@ class IPLOCInstance extends InstanceBase<IPLOCModuleConfig> {
   initFeedbacks() {
     const self = this
     this.setFeedbackDefinitions({
+      ...this.socket.getFeedbacks(),
       [IPLOCFeedback.team_colour]: {
         type: 'advanced',
         name: 'Change BG colour to teams colour',
@@ -421,34 +404,13 @@ class IPLOCInstance extends InstanceBase<IPLOCModuleConfig> {
         },
       },
 
-      [IPLOCFeedback.nodecg_connection_status]: {
-        type: 'advanced',
-        name: 'NodeCG connection status',
-        description: "Changes this toggle's color and text to reflect the NodeCG connection status",
-        options: [],
-        callback: () => {
-          if (this.socket != null && this.socket.isConnected()) {
-            return {
-              color: combineRgb(0, 0, 0),
-              bgcolor: combineRgb(0, 255, 0),
-              text: 'NODECG READY',
-              size: '14',
-            }
-          } else {
-            return {
-              color: combineRgb(255, 255, 255),
-              bgcolor: combineRgb(255, 0, 0),
-              text: 'NODECG OFF',
-              size: '14',
-            }
-          }
-        },
-      },
+
     })
   }
 
-  actions() {
+  initActions() {
     this.setActionDefinitions({
+      ...this.socket.getActions(),
       set_win: {
         name: 'Set win on last game',
         options: [
@@ -820,13 +782,6 @@ class IPLOCInstance extends InstanceBase<IPLOCModuleConfig> {
           } else {
             this.socket.sendMessage('startGame', DASHBOARD_BUNDLE_NAME)
           }
-        },
-      },
-      reconnect: {
-        name: 'Reconnect to NodeCG',
-        options: [],
-        callback: () => {
-          this.socket.start()
         },
       },
     })

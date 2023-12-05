@@ -4,7 +4,13 @@ import EventEmitter from 'events'
 import TypedEventEmitter from 'typed-emitter'
 import ObjectPath from 'object-path'
 import { BundleMap, ReplicantMetadata } from './types/replicant'
-import { InstanceBase } from '@companion-module/base'
+import {
+  combineRgb,
+  CompanionActionDefinitions,
+  CompanionFeedbackDefinitions,
+  InstanceBase,
+  InstanceStatus,
+} from '@companion-module/base'
 import type NodeCG from '@nodecg/types'
 import type NodeCGSocketProtocol from '@nodecg/types/types/socket-protocol'
 
@@ -16,12 +22,18 @@ interface NodeCGOptions {
 const ARRAY_MUTATOR_METHODS = ['copyWithin', 'fill', 'pop', 'push', 'reverse', 'shift', 'sort', 'splice', 'unshift']
 
 type NodeCGConnectorEventMap = {
-  connect: () => void
-  disconnect: (reason: string) => void
   replicantUpdate: (name: string, bundleName: string) => void
 }
 
 type ReplicantNameMap<B extends BundleMap> = { [Key in keyof B]: Array<keyof B[Key]> }
+
+export enum NodeCGConnectorFeedback {
+  nodecg_connection_status = 'nodecg_connection_status',
+}
+
+export enum NodeCGConnectorAction {
+  reconnect = 'reconnect',
+}
 
 export class NodeCGConnector<
   Bundles extends BundleMap
@@ -62,6 +74,7 @@ export class NodeCGConnector<
     this.disconnect()
 
     this.socket = io(`ws://${this.opts.host}:${this.opts.port}`, { reconnection: true })
+    this.instance.updateStatus(InstanceStatus.Connecting)
 
     this.socket.on('connect', async () => {
       for (const [bundle, replicants] of Object.entries(this.replicantNames)) {
@@ -100,7 +113,10 @@ export class NodeCGConnector<
         }
       }
 
-      this.emit('connect')
+      this.instance.log('debug', `NodeCG connection opened`)
+      this.instance.checkFeedbacks(NodeCGConnectorFeedback.nodecg_connection_status)
+      this.instance.updateStatus(InstanceStatus.Ok)
+      this.instance.subscribeFeedbacks()
     })
 
     this.socket.on('connect_error', (err) => {
@@ -129,8 +145,11 @@ export class NodeCGConnector<
       }
     })
 
-    this.socket.on('disconnect', (data) => {
-      this.emit('disconnect', data)
+    this.socket.on('disconnect', (reason) => {
+      const msg = `NodeCG connection closed. Reason: ${reason}`
+      this.instance.checkFeedbacks(NodeCGConnectorFeedback.nodecg_connection_status)
+      this.instance.log('debug', msg)
+      this.instance.updateStatus(InstanceStatus.Disconnected, msg)
     })
   }
 
@@ -220,6 +239,46 @@ export class NodeCGConnector<
     newValue: Bundles[Bundle][Rep]
   ) {
     this.proposeReplicantOperations(name, bundleName, [{ path: '/', method: 'overwrite', args: { newValue } }])
+  }
+
+  public getFeedbacks(): CompanionFeedbackDefinitions {
+    return {
+      [NodeCGConnectorFeedback.nodecg_connection_status]: {
+        type: 'advanced',
+        name: 'NodeCG connection status',
+        description: "Changes this toggle's color and text to reflect the NodeCG connection status",
+        options: [],
+        callback: () => {
+          if (this.isConnected()) {
+            return {
+              color: combineRgb(0, 0, 0),
+              bgcolor: combineRgb(0, 255, 0),
+              text: 'NODECG READY',
+              size: '14',
+            }
+          } else {
+            return {
+              color: combineRgb(255, 255, 255),
+              bgcolor: combineRgb(255, 0, 0),
+              text: 'NODECG OFF',
+              size: '14',
+            }
+          }
+        },
+      }
+    }
+  }
+
+  public getActions(): CompanionActionDefinitions {
+    return {
+      [NodeCGConnectorAction.reconnect]: {
+        name: 'Reconnect to NodeCG',
+        options: [],
+        callback: () => {
+          this.start()
+        },
+      }
+    }
   }
 
   private static pathStrToPathArr(path: string): string[] {
