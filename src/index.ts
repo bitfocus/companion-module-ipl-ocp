@@ -62,7 +62,7 @@ interface ReplicantMap {
  * @param obj Object to check
  * @return {boolean}
  */
-function isEmpty(obj: {} | undefined) {
+function isEmpty(obj: {} | undefined): boolean {
   return obj != null && Object.keys(obj).length === 0
 }
 
