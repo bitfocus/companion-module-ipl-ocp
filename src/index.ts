@@ -277,11 +277,11 @@ class IPLOCInstance extends InstanceBase<IPLOCModuleConfig> {
           if (!isEmpty(activeRound)) {
             const teamColor = activeRound?.[feedback.options.team as 'teamA' | 'teamB'].color
             if (teamColor != null) {
-              const bgcolour = colord(teamColor).toRgb()
+              const bgcolor = colord(teamColor).toRgb()
               // Choose what text colour to use for feedback depending on the background colour
-              const colour = (bgcolour.r * 299 + bgcolour.g * 587 + bgcolour.b * 114) / 1000 >= 128 ? 30 : 230
+              const colour = (bgcolor.r * 299 + bgcolor.g * 587 + bgcolor.b * 114) / 1000 >= 128 ? 30 : 230
               return {
-                bgcolor: combineRgb(bgcolour.r, bgcolour.g, bgcolour.b),
+                bgcolor: combineRgb(bgcolor.r, bgcolor.g, bgcolor.b),
                 color: combineRgb(colour, colour, colour),
               }
             }
