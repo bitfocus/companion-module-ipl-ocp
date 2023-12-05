@@ -154,10 +154,6 @@ class IPLOCInstance extends InstanceBase<IPLOCModuleConfig> {
       this.updateStatus(InstanceStatus.Disconnected, msg)
     })
 
-    this.socket.on('error', (err) => {
-      this.log('error', `Socket.io error: ${err}`)
-    })
-
     this.socket.on('replicantUpdate', (name) => {
       this.assignDynamicVariablesAndFeedback(name as keyof ReplicantMap)
     })

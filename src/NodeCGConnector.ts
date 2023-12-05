@@ -19,7 +19,6 @@ type NodeCGConnectorEventMap = {
   connect: () => void
   disconnect: (reason: string) => void
   replicantUpdate: (name: string, bundleName: string) => void
-  error: (err: Error) => void
 }
 
 type ReplicantNameMap<B extends BundleMap> = { [Key in keyof B]: Array<keyof B[Key]> }
@@ -104,8 +103,8 @@ export class NodeCGConnector<
       this.emit('connect')
     })
 
-    this.socket.on('connect_error', (data) => {
-      this.emit('error', data)
+    this.socket.on('connect_error', (err) => {
+      this.instance.log('error', `Socket.io connection error - ${err}`)
     })
 
     this.socket.on('replicant:operations', async (data) => {
