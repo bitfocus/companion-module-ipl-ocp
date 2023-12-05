@@ -471,7 +471,7 @@ class IPLOCInstance extends InstanceBase<IPLOCModuleConfig> {
           // First check we don't go over the number of games that can be assigned
           const activeRound = this.socket.replicants[DASHBOARD_BUNDLE_NAME]['activeRound']
           if (activeRound != null && activeRound.teamA.score + activeRound.teamB.score < activeRound.games.length) {
-            this.socket.sendMessage('setWinner', { winner: action.options.team })
+            this.socket.sendMessage('setWinner', DASHBOARD_BUNDLE_NAME, { winner: action.options.team })
           }
         },
       },
@@ -482,7 +482,7 @@ class IPLOCInstance extends InstanceBase<IPLOCModuleConfig> {
           // Check there's scores to remove
           const activeRound = this.socket.replicants[DASHBOARD_BUNDLE_NAME]['activeRound']
           if (activeRound != null && activeRound.teamA.score + activeRound.teamB.score > 0) {
-            this.socket.sendMessage('removeWinner')
+            this.socket.sendMessage('removeWinner', DASHBOARD_BUNDLE_NAME)
           }
         },
       },
@@ -490,21 +490,21 @@ class IPLOCInstance extends InstanceBase<IPLOCModuleConfig> {
         name: 'Show Casters on Main Scene.',
         options: [],
         callback: () => {
-          this.socket.sendMessage('mainShowCasters')
+          this.socket.sendMessage('mainShowCasters', DASHBOARD_BUNDLE_NAME)
         },
       },
       show_predictions: {
         name: 'Show Predictions.',
         options: [],
         callback: () => {
-          this.socket.sendMessage('showPredictionData')
+          this.socket.sendMessage('showPredictionData', DASHBOARD_BUNDLE_NAME)
         },
       },
       get_live_commentators: {
         name: 'Load Commentators from VC.',
         options: [],
         callback: () => {
-          this.socket.sendMessage('getLiveCommentators')
+          this.socket.sendMessage('getLiveCommentators', DASHBOARD_BUNDLE_NAME)
         },
       },
       swap_colour: {
@@ -534,9 +534,9 @@ class IPLOCInstance extends InstanceBase<IPLOCModuleConfig> {
         ],
         callback: (action) => {
           if (action.options.direction === 'next') {
-            this.socket.sendMessage('switchToNextColor')
+            this.socket.sendMessage('switchToNextColor', DASHBOARD_BUNDLE_NAME)
           } else if (action.options.direction === 'previous') {
-            this.socket.sendMessage('switchToPreviousColor')
+            this.socket.sendMessage('switchToPreviousColor', DASHBOARD_BUNDLE_NAME)
           }
         },
       },
@@ -815,14 +815,14 @@ class IPLOCInstance extends InstanceBase<IPLOCModuleConfig> {
             this.socket.replicants[DASHBOARD_BUNDLE_NAME].gameAutomationData?.actionInProgress !== 'NONE' &&
             !isBlank(nextTaskName)
           ) {
-            this.socket.sendMessage('fastForwardToNextGameAutomationTask')
+            this.socket.sendMessage('fastForwardToNextGameAutomationTask', DASHBOARD_BUNDLE_NAME)
           } else if (
             this.socket.replicants[DASHBOARD_BUNDLE_NAME].obsData?.gameplayScene ===
             this.socket.replicants[DASHBOARD_BUNDLE_NAME].obsData?.currentScene
           ) {
-            this.socket.sendMessage('endGame')
+            this.socket.sendMessage('endGame', DASHBOARD_BUNDLE_NAME)
           } else {
-            this.socket.sendMessage('startGame')
+            this.socket.sendMessage('startGame', DASHBOARD_BUNDLE_NAME)
           }
         },
       },

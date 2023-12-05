@@ -172,19 +172,17 @@ export class NodeCGConnector<
     })
   }
 
-  public sendMessage(messageName: string, data?: unknown) {
+  public sendMessage<Bundle extends keyof Bundles>(messageName: string, bundleName: Bundle, data?: unknown) {
     this.socket?.emit(
       'message',
       {
-        bundleName: 'ipl-overlay-controls',
+        bundleName: String(bundleName),
         messageName: messageName,
         content: data,
       },
-      (response) => {
-        if (response != null) {
-          if (response.name === 'Error') {
-            throw new Error(response.message)
-          }
+      (err) => {
+        if (err != null) {
+          this.instance.log('error', `Sending message returned error: ${err}`)
         }
       }
     )
