@@ -35,12 +35,22 @@ export enum NodeCGConnectorAction {
   reconnect = 'reconnect',
 }
 
+interface DefaultBundleMap {
+  nodecg: {
+    bundles: NodeCG.Bundle[]
+  }
+}
+
+const defaultReplicantNames = {
+  nodecg: ['bundles'],
+}
+
 export class NodeCGConnector<
   Bundles extends BundleMap
 > extends (EventEmitter as new () => TypedEventEmitter<NodeCGConnectorEventMap>) {
-  readonly replicants: Bundles
-  readonly replicantMetadata: Record<string, Record<string, ReplicantMetadata>>
-  readonly replicantNames: ReplicantNameMap<Bundles>
+  replicants: Bundles & DefaultBundleMap
+  replicantMetadata: Record<string, Record<string, ReplicantMetadata>>
+  readonly replicantNames: ReplicantNameMap<Bundles & DefaultBundleMap>
   private opts: NodeCGOptions
   private socket: NodeCGSocketProtocol.TypedClientSocket | undefined
   private instance: InstanceBase<unknown>
@@ -49,12 +59,12 @@ export class NodeCGConnector<
     super()
 
     this.instance = instance
-    this.replicantNames = replicantNames
-    this.replicants = Object.keys(this.replicantNames).reduce((result, bundleName) => {
-      result[bundleName] = {}
-      return result
-    }, {} as Record<string, unknown>) as Bundles
-    this.replicantMetadata = {}
+    this.replicantNames = {
+      ...replicantNames,
+      ...defaultReplicantNames,
+    }
+    this.replicantMetadata = this.getEmptyBundleMap() as Record<string, Record<string, ReplicantMetadata>>
+    this.replicants = this.getEmptyBundleMap() as Bundles & DefaultBundleMap
 
     this.opts = opts
 
@@ -77,45 +87,24 @@ export class NodeCGConnector<
     this.instance.updateStatus(InstanceStatus.Connecting)
 
     this.socket.on('connect', async () => {
-      for (const [bundle, replicants] of Object.entries(this.replicantNames)) {
-        for (const replicant of replicants) {
-          await this.socket!.emitWithAck('joinRoom', `replicant:${bundle}:${replicant}`)
-          this.instance.log('debug', `Joined room for replicant ${replicant} in bundle ${bundle}`)
+      this.replicantMetadata = this.getEmptyBundleMap() as Record<string, Record<string, ReplicantMetadata>>
+      this.replicants = this.getEmptyBundleMap() as Bundles & DefaultBundleMap
 
-          this.socket!.emit(
-            'replicant:declare',
-            {
-              name: replicant,
-              namespace: bundle,
-              opts: {},
-            },
-            (err, result) => {
-              if (err != null) {
-                this.instance.log('error', `Failed to declare replicant ${replicant} for bundle ${bundle}: ${err}`)
-                return
-              }
-
-              this.instance.log('debug', `Declared replicant ${replicant} in bundle ${bundle}`)
-
-              if (!this.replicantMetadata[bundle]) {
-                this.replicantMetadata[bundle] = {}
-              }
-              this.replicantMetadata[bundle][replicant] = {
-                revision: result!.revision,
-                schemaSum: 'schema' in result! ? result.schemaSum : undefined,
-                schema: 'schema' in result! ? result.schema : undefined,
-              }
-
-              this.replicants[bundle][replicant] = result!.value
-              this.emit('replicantUpdate', replicant, bundle)
-            }
-          )
-        }
+      try {
+        await this.declareReplicant('bundles', 'nodecg')
+      } catch (e) {
+        this.instance.log('error', `Failed to get NodeCG bundle list: ${e}`)
+        this.instance.updateStatus(
+          InstanceStatus.ConnectionFailure,
+          'Failed to get list of bundles while connecting to NodeCG'
+        )
+        return
       }
+
+      await this.onBundleListChange()
 
       this.instance.log('debug', `NodeCG connection opened`)
       this.instance.checkFeedbacks(NodeCGConnectorFeedback.nodecg_connection_status)
-      this.instance.updateStatus(InstanceStatus.Ok)
       this.instance.subscribeFeedbacks()
     })
 
@@ -141,6 +130,9 @@ export class NodeCGConnector<
         }
 
         metadata.revision = data.revision
+        if (data.name === 'bundles' && data.namespace === 'nodecg') {
+          await this.onBundleListChange()
+        }
         this.emit('replicantUpdate', data.name, data.namespace)
       }
     })
@@ -160,18 +152,85 @@ export class NodeCGConnector<
     }
   }
 
-  public async readReplicant<Bundle extends keyof Bundles, Name extends keyof Bundles[Bundle]>(
-    name: Name,
-    bundleName: Bundle
-  ): Promise<Bundles[Bundle][Name]> {
+  private async readReplicant<T>(name: string, bundleName: string): Promise<T> {
     return new Promise((resolve, reject) => {
-      this.socket!.emit('replicant:read', { namespace: String(bundleName), name: String(name) }, (err, value) => {
+      this.socket!.emit('replicant:read', { namespace: bundleName, name: name }, (err, value) => {
         if (err) {
           return reject(err)
         } else {
-          return resolve(value as Bundles[Bundle][Name])
+          return resolve(value as T)
         }
       })
+    })
+  }
+
+  private async onBundleListChange() {
+    this.instance.log('debug', 'bundle list has changed, figuring things out again')
+    const missingBundles: string[] = []
+
+    for (const [bundle, replicants] of Object.entries(this.replicantNames)) {
+      if (bundle === 'nodecg') continue
+
+      if (this.replicants['nodecg']['bundles'].every((installedBundle) => installedBundle.name !== bundle)) {
+        missingBundles.push(bundle)
+        ;(this.replicants as Record<string, unknown>)[bundle] = {}
+        this.replicantMetadata[bundle] = {}
+        continue
+      }
+
+      for (const replicant of replicants) {
+        if (this.replicantMetadata[bundle][replicant] != null) {
+          continue
+        }
+
+        try {
+          await this.declareReplicant(replicant, bundle)
+        } catch (e) {
+          this.instance.log('error', `Failed to declare replicant ${replicant} for bundle ${bundle}: ${e}`)
+        }
+      }
+    }
+
+    if (missingBundles.length > 0) {
+      this.instance.updateStatus(
+        InstanceStatus.UnknownError,
+        `Some NodeCG bundles are required by this module but are not installed: ${missingBundles.join(', ')}`
+      )
+    } else {
+      this.instance.updateStatus(InstanceStatus.Ok)
+    }
+  }
+
+  private async declareReplicant(name: string, bundleName: string): Promise<void> {
+    await this.socket!.emitWithAck('joinRoom', `replicant:${bundleName}:${name}`)
+    this.instance.log('debug', `Joined room for replicant ${name} in bundle ${bundleName}`)
+
+    return new Promise((resolve, reject) => {
+      this.socket!.emit(
+        'replicant:declare',
+        {
+          name: name,
+          namespace: bundleName,
+          opts: {},
+        },
+        (err, result) => {
+          if (err != null) {
+            return reject(err)
+          }
+
+          this.instance.log('debug', `Declared replicant ${name} in bundle ${bundleName}`)
+
+          this.replicantMetadata[bundleName][name] = {
+            revision: result!.revision,
+            schemaSum: 'schema' in result! ? result.schemaSum : undefined,
+            schema: 'schema' in result! ? result.schema : undefined,
+          }
+
+          this.replicants[bundleName][name] = result!.value
+          this.emit('replicantUpdate', name, bundleName)
+          resolve()
+        }
+      )
     })
   }
 
@@ -265,7 +324,7 @@ export class NodeCGConnector<
             }
           }
         },
-      }
+      },
     }
   }
 
@@ -277,7 +336,7 @@ export class NodeCGConnector<
         callback: () => {
           this.start()
         },
-      }
+      },
     }
   }
 
@@ -298,6 +357,13 @@ export class NodeCGConnector<
 
   private shouldHandleReplicant(name: string, bundle: string): boolean {
     return this.replicantMetadata[bundle]?.[name] != null
+  }
+
+  private getEmptyBundleMap() {
+    return Object.keys(this.replicantNames).reduce((result, bundleName) => {
+      result[bundleName] = {}
+      return result
+    }, {} as Record<string, unknown>)
   }
 
   private applyOperation<T extends object>(
