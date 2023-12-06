@@ -1,5 +1,6 @@
 import {
   combineRgb,
+  CompanionActionDefinitions,
   InstanceBase,
   Regex,
   runEntrypoint,
@@ -21,6 +22,7 @@ import {
 import { modeNameToShortModeName, stageNameToShortStageName } from './helpers/SplatoonData'
 import { NodeCGConnector } from './NodeCGConnector'
 import { isBlank } from './helpers/StringHelper'
+import semver from 'semver'
 
 const DASHBOARD_BUNDLE_NAME = 'ipl-overlay-controls'
 
@@ -30,7 +32,7 @@ interface IPLOCModuleConfig {
 }
 
 type IPLOCBundleMap = {
-  [DASHBOARD_BUNDLE_NAME]: ReplicantMap
+  [DASHBOARD_BUNDLE_NAME]: IPLOCReplicantMap
 }
 
 enum IPLOCFeedback {
@@ -43,7 +45,7 @@ enum IPLOCFeedback {
   automation_action_state = 'automation_action_state',
 }
 
-interface ReplicantMap {
+interface IPLOCReplicantMap {
   activeRound?: ActiveRound
   scoreboardData?: ScoreboardData
   swapColorsInternally?: SwapColorsInternally
@@ -139,7 +141,7 @@ class IPLOCInstance extends InstanceBase<IPLOCModuleConfig> {
     this.initActions()
 
     this.socket.on('replicantUpdate', (name) => {
-      this.assignDynamicVariablesAndFeedback(name as keyof ReplicantMap)
+      this.assignDynamicVariablesAndFeedback(name as keyof IPLOCReplicantMap)
     })
 
     this.socket.start()
@@ -189,7 +191,7 @@ class IPLOCInstance extends InstanceBase<IPLOCModuleConfig> {
    * Updates the Companion dynamic variables
    * @param replicantName replicant that got updated
    */
-  assignDynamicVariablesAndFeedback(replicantName: keyof ReplicantMap) {
+  assignDynamicVariablesAndFeedback(replicantName: keyof IPLOCReplicantMap | 'bundles') {
     switch (replicantName) {
       case 'activeRound':
         if (!isEmpty(this.socket.replicants[DASHBOARD_BUNDLE_NAME]['activeRound'])) {
@@ -228,6 +230,8 @@ class IPLOCInstance extends InstanceBase<IPLOCModuleConfig> {
       case 'obsData':
         this.checkFeedbacks(IPLOCFeedback.automation_action_state)
         break
+      case 'bundles':
+        this.initActions()
     }
   }
 
@@ -403,13 +407,11 @@ class IPLOCInstance extends InstanceBase<IPLOCModuleConfig> {
           }
         },
       },
-
-
     })
   }
 
   initActions() {
-    this.setActionDefinitions({
+    const actions: CompanionActionDefinitions = {
       ...this.socket.getActions(),
       set_win: {
         name: 'Set win on last game',
@@ -784,7 +786,26 @@ class IPLOCInstance extends InstanceBase<IPLOCModuleConfig> {
           }
         },
       },
-    })
+    }
+
+    if (this.socket.replicants.nodecg != null) {
+      const dashboardVersion = this.socket.replicants.nodecg.bundles?.find(
+        (bundle) => bundle.name === DASHBOARD_BUNDLE_NAME
+      )?.version
+
+      if (dashboardVersion != null && semver.gte(dashboardVersion, '4.8.0')) {
+        actions['start_next_match'] = {
+          name: 'Start the next match',
+          description: 'Set the active match to the next match\'s teams.',
+          options: [],
+          callback: () => {
+            this.socket.sendMessage('beginNextMatch', DASHBOARD_BUNDLE_NAME)
+          }
+        }
+      }
+    }
+
+    this.setActionDefinitions(actions)
   }
 }
 
