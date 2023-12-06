@@ -165,7 +165,6 @@ export class NodeCGConnector<
   }
 
   private async onBundleListChange() {
-    this.instance.log('debug', 'bundle list has changed, figuring things out again')
     const missingBundles: string[] = []
 
     for (const [bundle, replicants] of Object.entries(this.replicantNames)) {
