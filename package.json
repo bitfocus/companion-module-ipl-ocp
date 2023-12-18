@@ -23,6 +23,7 @@
 		"Inkfarer <inkfarer@iplabs.ink>"
 	],
 	"license": "MIT",
+	"prettier": "@companion-module/tools/.prettierrc.json",
 	"dependencies": {
 		"@companion-module/base": "~1.6.0",
 		"@types/luxon": "^2.3.2",

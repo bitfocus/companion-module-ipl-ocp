@@ -6,37 +6,37 @@
  */
 
 export interface NextRound {
-  teamA: {
-    id: string
-    name: string
-    logoUrl?: string
-    showLogo: boolean
-    players: {
-      name: string
-      [k: string]: unknown
-    }[]
-    [k: string]: unknown
-  }
-  teamB: {
-    id: string
-    name: string
-    logoUrl?: string
-    showLogo: boolean
-    players: {
-      name: string
-      [k: string]: unknown
-    }[]
-    [k: string]: unknown
-  }
-  round: {
-    id: string
-    name: string
-    type: 'BEST_OF' | 'PLAY_ALL'
-  }
-  showOnStream: boolean
-  games: {
-    stage: string
-    mode: string
-    [k: string]: unknown
-  }[]
+	teamA: {
+		id: string
+		name: string
+		logoUrl?: string
+		showLogo: boolean
+		players: {
+			name: string
+			[k: string]: unknown
+		}[]
+		[k: string]: unknown
+	}
+	teamB: {
+		id: string
+		name: string
+		logoUrl?: string
+		showLogo: boolean
+		players: {
+			name: string
+			[k: string]: unknown
+		}[]
+		[k: string]: unknown
+	}
+	round: {
+		id: string
+		name: string
+		type: 'BEST_OF' | 'PLAY_ALL'
+	}
+	showOnStream: boolean
+	games: {
+		stage: string
+		mode: string
+		[k: string]: unknown
+	}[]
 }

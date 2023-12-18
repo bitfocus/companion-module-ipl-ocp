@@ -1,29 +1,29 @@
 export type BundleMap = {
-  [name: string]: ReplicantMap
+	[name: string]: ReplicantMap
 }
 
 export interface ReplicantMap {
-  [name: string]: any
+	[name: string]: any
 }
 
 export interface ReplicantMetadataOpts {
-  schemaPath: string
-  persistent: boolean
-  persistenceInterval: number
+	schemaPath: string
+	persistent: boolean
+	persistenceInterval: number
 }
 
 export interface ReplicantMetadata {
-  revision: number
-  schemaSum: string
-  opts: ReplicantMetadataOpts
+	revision: number
+	schemaSum: string
+	opts: ReplicantMetadataOpts
 }
 
 export interface ReplicantOperation {
-  method: string
-  path: string
-  args: {
-    prop: string
-    newValue: unknown
-  },
-  result?: unknown
+	method: string
+	path: string
+	args: {
+		prop: string
+		newValue: unknown
+	}
+	result?: unknown
 }

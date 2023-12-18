@@ -101,3 +101,6 @@ typings/
 
 # Build output
 dist/
+/pkg
+/pkg.tgz
+/DEBUG-*
