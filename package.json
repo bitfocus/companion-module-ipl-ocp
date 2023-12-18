@@ -1,33 +1,16 @@
 {
 	"name": "ipl-ocp",
 	"version": "2.0.5",
-	"api_version": "1.0.0",
-	"manufacturer": "Inkling Performance Labs",
-	"product": "Overlay Control Panel",
-	"keywords": [
-		"ipl",
-		"ocp",
-		"Inkling Performance Labs",
-		"Overlay Control Panel"
-	],
-	"shortname": "ocp",
-	"description": "Module to control IPL OCP",
 	"main": "dist/index.js",
 	"scripts": {
 		"build": "rimraf dist && tsc -p tsconfig.build.json",
 		"build:main": "tsc -p tsconfig.build.json",
 		"build:watch": "tsc -p tsconfig.build.json --watch"
 	},
-	"author": "Vincent Lee <vlee@iplabs.ink>",
-	"contributors": [
-		"Inkfarer <inkfarer@iplabs.ink>"
-	],
 	"license": "MIT",
 	"prettier": "@companion-module/tools/.prettierrc.json",
 	"dependencies": {
 		"@companion-module/base": "~1.6.0",
-		"@types/luxon": "^2.3.2",
-		"@types/object-path": "^0.11.4",
 		"colord": "^2.9.2",
 		"luxon": "^2.3.0",
 		"object-path": "^0.11.8",
@@ -36,12 +19,11 @@
 	},
 	"devDependencies": {
 		"@companion-module/tools": "^1.4.1",
+		"@types/luxon": "^2.3.2",
+		"@types/object-path": "^0.11.4",
+		"@types/node": "^18.18.4",
 		"rimraf": "^5.0.5",
 		"typescript": "~4.5"
-	},
-	"homepage": "https://github.com/bitfocus/companion-module-ipl-ocp#readme",
-	"bugs": {
-		"url": "https://github.com/bitfocus/companion-module-ipl-ocp/issues"
 	},
 	"repository": {
 		"type": "git",
