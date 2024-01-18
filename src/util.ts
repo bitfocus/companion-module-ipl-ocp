@@ -26,10 +26,10 @@ export function isBlank(value?: string | null): boolean {
 export const DASHBOARD_BUNDLE_NAME = 'ipl-overlay-controls'
 
 export type IPLOCBundleMap = {
-	[DASHBOARD_BUNDLE_NAME]: ReplicantMap
+	[DASHBOARD_BUNDLE_NAME]: IPLOCReplicantMap
 }
 
-export interface ReplicantMap {
+export interface IPLOCReplicantMap {
 	activeRound?: ActiveRound
 	scoreboardData?: ScoreboardData
 	swapColorsInternally?: SwapColorsInternally

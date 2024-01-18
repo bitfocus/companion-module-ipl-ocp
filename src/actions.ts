@@ -4,12 +4,14 @@ import { IPLOCModuleConfig } from './config'
 import { NodeCGConnector } from './NodeCGConnector'
 import { ActiveBreakScene } from './types'
 import { IPLOCBundleMap, DASHBOARD_BUNDLE_NAME, isBlank } from './util'
+import semver from 'semver'
 
 export function getActionDefinitions(
 	self: InstanceBase<IPLOCModuleConfig>,
 	socket: NodeCGConnector<IPLOCBundleMap>
 ): CompanionActionDefinitions {
-	return {
+	const actions: CompanionActionDefinitions = {
+		...socket.getActions(),
 		set_win: {
 			name: 'Set win on last game',
 			options: [
@@ -28,7 +30,7 @@ export function getActionDefinitions(
 				// First check we don't go over the number of games that can be assigned
 				const activeRound = socket.replicants[DASHBOARD_BUNDLE_NAME]['activeRound']
 				if (activeRound != null && activeRound.teamA.score + activeRound.teamB.score < activeRound.games.length) {
-					socket.sendMessage('setWinner', { winner: action.options.team })
+					socket.sendMessage('setWinner', DASHBOARD_BUNDLE_NAME, { winner: action.options.team })
 				}
 			},
 		},
@@ -39,7 +41,7 @@ export function getActionDefinitions(
 				// Check there's scores to remove
 				const activeRound = socket.replicants[DASHBOARD_BUNDLE_NAME]['activeRound']
 				if (activeRound != null && activeRound.teamA.score + activeRound.teamB.score > 0) {
-					socket.sendMessage('removeWinner')
+					socket.sendMessage('removeWinner', DASHBOARD_BUNDLE_NAME)
 				}
 			},
 		},
@@ -47,21 +49,21 @@ export function getActionDefinitions(
 			name: 'Show Casters on Main Scene.',
 			options: [],
 			callback: () => {
-				socket.sendMessage('mainShowCasters')
+				socket.sendMessage('mainShowCasters', DASHBOARD_BUNDLE_NAME)
 			},
 		},
 		show_predictions: {
 			name: 'Show Predictions.',
 			options: [],
 			callback: () => {
-				socket.sendMessage('showPredictionData')
+				socket.sendMessage('showPredictionData', DASHBOARD_BUNDLE_NAME)
 			},
 		},
 		get_live_commentators: {
 			name: 'Load Commentators from VC.',
 			options: [],
 			callback: () => {
-				socket.sendMessage('getLiveCommentators')
+				socket.sendMessage('getLiveCommentators', DASHBOARD_BUNDLE_NAME)
 			},
 		},
 		swap_colour: {
@@ -91,9 +93,9 @@ export function getActionDefinitions(
 			],
 			callback: (action) => {
 				if (action.options.direction === 'next') {
-					socket.sendMessage('switchToNextColor')
+					socket.sendMessage('switchToNextColor', DASHBOARD_BUNDLE_NAME)
 				} else if (action.options.direction === 'previous') {
-					socket.sendMessage('switchToPreviousColor')
+					socket.sendMessage('switchToPreviousColor', DASHBOARD_BUNDLE_NAME)
 				}
 			},
 		},
@@ -196,16 +198,17 @@ export function getActionDefinitions(
 			options: [
 				{
 					type: 'textinput',
+					useVariables: true,
 					label: '+ Minutes',
 					id: 'minutes',
 					tooltip:
 						'How many minutes in the future you want the time set to. Must be numeric, may be a variable reference.',
 					default: '5',
-					useVariables: true,
 				},
 			],
-			callback: async (action, context) => {
-				const parsedMinutes = await context.parseVariablesInString(String(action.options.minutes))
+			callback: async (action) => {
+				const parsedMinutes = await self.parseVariablesInString(String(action.options.minutes))
+
 				const minutes = Number(parsedMinutes)
 
 				if (minutes != null && !isNaN(minutes)) {
@@ -231,15 +234,15 @@ export function getActionDefinitions(
 			options: [
 				{
 					type: 'textinput',
+					useVariables: true,
 					label: '+ Minutes',
 					id: 'minutes',
 					tooltip: 'How many minutes to add to the timer. Must be numeric, may be a variable reference.',
 					default: '1',
-					useVariables: true,
 				},
 			],
-			callback: async (action, context) => {
-				const parsedMinutes = await context.parseVariablesInString(String(action.options.minutes))
+			callback: async (action) => {
+				const parsedMinutes = await self.parseVariablesInString(String(action.options.minutes))
 				const minutes = Number(parsedMinutes)
 				if (minutes == null || isNaN(minutes)) {
 					self.log('error', `Value of option "Minutes" was "${parsedMinutes}", which is not numeric!`)
@@ -250,7 +253,6 @@ export function getActionDefinitions(
 				}
 
 				const normalizedMinutes = Math.max(0, minutes)
-				// @ts-ignore: TypeScript doesn't understand the above null check
 				const time = DateTime.fromISO(socket.replicants[DASHBOARD_BUNDLE_NAME].nextRoundStartTime.startTime)
 					.plus({ minutes: normalizedMinutes })
 					.toUTC()
@@ -363,23 +365,35 @@ export function getActionDefinitions(
 					socket.replicants[DASHBOARD_BUNDLE_NAME].gameAutomationData?.actionInProgress !== 'NONE' &&
 					!isBlank(nextTaskName)
 				) {
-					socket.sendMessage('fastForwardToNextGameAutomationTask')
+					socket.sendMessage('fastForwardToNextGameAutomationTask', DASHBOARD_BUNDLE_NAME)
 				} else if (
 					socket.replicants[DASHBOARD_BUNDLE_NAME].obsData?.gameplayScene ===
 					socket.replicants[DASHBOARD_BUNDLE_NAME].obsData?.currentScene
 				) {
-					socket.sendMessage('endGame')
+					socket.sendMessage('endGame', DASHBOARD_BUNDLE_NAME)
 				} else {
-					socket.sendMessage('startGame')
+					socket.sendMessage('startGame', DASHBOARD_BUNDLE_NAME)
 				}
 			},
 		},
-		reconnect: {
-			name: 'Reconnect to NodeCG',
-			options: [],
-			callback: () => {
-				socket.start()
-			},
-		},
 	}
+
+	if (socket.replicants.nodecg != null) {
+		const dashboardVersion = socket.replicants.nodecg.bundles?.find(
+			(bundle) => bundle.name === DASHBOARD_BUNDLE_NAME
+		)?.version
+
+		if (dashboardVersion != null && semver.gte(dashboardVersion, '4.8.0')) {
+			actions['start_next_match'] = {
+				name: 'Start the next match',
+				description: "Set the active match to the next match's teams.",
+				options: [],
+				callback: () => {
+					socket.sendMessage('beginNextMatch', DASHBOARD_BUNDLE_NAME)
+				},
+			}
+		}
+	}
+
+	return actions
 }
