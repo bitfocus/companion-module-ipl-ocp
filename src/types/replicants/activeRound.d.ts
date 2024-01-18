@@ -6,54 +6,54 @@
  */
 
 export type ActiveRoundTeam = {
-  id: string
-  name: string
-  logoUrl?: string
-  showLogo: boolean
-  players: {
-    name: string
-    [k: string]: unknown
-  }[]
-  [k: string]: unknown
+	id: string
+	name: string
+	logoUrl?: string
+	showLogo: boolean
+	players: {
+		name: string
+		[k: string]: unknown
+	}[]
+	[k: string]: unknown
 } & {
-  score: number
-  color: string
-  [k: string]: unknown
+	score: number
+	color: string
+	[k: string]: unknown
 }
 
 export interface ActiveRound {
-  teamA: ActiveRoundTeam
-  teamB: ActiveRoundTeam
-  activeColor: {
-    index: number
-    title: string
-    categoryName: string
-    isCustom: boolean
-    clrNeutral: string
-  }
-  match: {
-    id: string
-    name: string
-    type: 'BEST_OF' | 'PLAY_ALL'
-    isCompleted: boolean
-  }
-  games: {
-    winner: 'none' | 'alpha' | 'bravo'
-    stage: string
-    mode: string
-    color?: {
-      index: number
-      title: string
-      clrA: string
-      clrB: string
-      clrNeutral: string
-      categoryName: string
-      isCustom: boolean
-      [k: string]: unknown
-    } & {
-      colorsSwapped: boolean
-      [k: string]: unknown
-    }
-    [k: string]: unknown
-  }[]
+	teamA: ActiveRoundTeam
+	teamB: ActiveRoundTeam
+	activeColor: {
+		index: number
+		title: string
+		categoryName: string
+		isCustom: boolean
+		clrNeutral: string
+	}
+	match: {
+		id: string
+		name: string
+		type: 'BEST_OF' | 'PLAY_ALL'
+		isCompleted: boolean
+	}
+	games: {
+		winner: 'none' | 'alpha' | 'bravo'
+		stage: string
+		mode: string
+		color?: {
+			index: number
+			title: string
+			clrA: string
+			clrB: string
+			clrNeutral: string
+			categoryName: string
+			isCustom: boolean
+			[k: string]: unknown
+		} & {
+			colorsSwapped: boolean
+			[k: string]: unknown
+		}
+		[k: string]: unknown
+	}[]
 }

@@ -6,6 +6,6 @@
  */
 
 export interface ScoreboardData {
-  flavorText: string
-  isVisible: boolean
+	flavorText: string
+	isVisible: boolean
 }

@@ -4,13 +4,14 @@
 	"main": "dist/index.js",
 	"scripts": {
 		"build": "rimraf dist && yarn build:main",
-		"build:main": "tsc",
-		"build:watch": "tsc --watch",
+		"build:main": "tsc -p tsconfig.build.json",
+		"build:watch": "tsc -p tsconfig.build.json --watch",
 		"format": "prettier -w ."
 	},
 	"license": "MIT",
+	"prettier": "@companion-module/tools/.prettierrc.json",
 	"dependencies": {
-		"@companion-module/base": "~1.4",
+		"@companion-module/base": "~1.6.0",
 		"colord": "^2.9.2",
 		"luxon": "^3.4.4",
 		"object-path": "^0.11.8",
@@ -22,8 +23,8 @@
 		"@companion-module/tools": "^1.4.1",
 		"@nodecg/types": "~2.1.12",
 		"@types/luxon": "^2.3.2",
-		"@types/node": "^20.6.3",
-		"@types/object-path": "^0.11.1",
+		"@types/node": "^18.18.4",
+		"@types/object-path": "^0.11.4",
 		"@types/semver": "^7.5.6",
 		"prettier": "2.5.1",
 		"rimraf": "^5.0.5",

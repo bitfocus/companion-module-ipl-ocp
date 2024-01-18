@@ -6,6 +6,6 @@
  */
 
 export interface NextRoundStartTime {
-  startTime: string
-  isVisible: boolean
+	startTime: string
+	isVisible: boolean
 }
