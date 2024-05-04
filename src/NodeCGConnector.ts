@@ -13,6 +13,7 @@ import {
 } from '@companion-module/base'
 import type NodeCG from '@nodecg/types'
 import type NodeCGSocketProtocol from '@nodecg/types/types/socket-protocol'
+import semver from 'semver'
 
 interface NodeCGOptions {
 	host?: string
@@ -26,6 +27,8 @@ type NodeCGConnectorEventMap = {
 }
 
 type ReplicantNameMap<B extends BundleMap> = { [Key in keyof B]: Array<keyof B[Key]> }
+
+type BundleVersionMap<B extends BundleMap> = { [Key in keyof B]: string | null }
 
 export enum NodeCGConnectorFeedback {
 	nodecg_connection_status = 'nodecg_connection_status',
@@ -51,11 +54,17 @@ export class NodeCGConnector<
 	replicants: Bundles & DefaultBundleMap
 	replicantMetadata: Record<string, Record<string, ReplicantMetadata>>
 	readonly replicantNames: ReplicantNameMap<Bundles & DefaultBundleMap>
+	readonly requiredBundleVersions: BundleVersionMap<Bundles>
 	private opts: NodeCGOptions
 	private socket: NodeCGSocketProtocol.TypedClientSocket | undefined
 	private instance: InstanceBase<unknown>
 
-	constructor(instance: InstanceBase<unknown>, opts: NodeCGOptions, replicantNames: ReplicantNameMap<Bundles>) {
+	constructor(
+		instance: InstanceBase<unknown>,
+		opts: NodeCGOptions,
+		replicantNames: ReplicantNameMap<Bundles>,
+		requiredBundleVersions: BundleVersionMap<Bundles>
+	) {
 		super()
 
 		this.instance = instance
@@ -65,6 +74,7 @@ export class NodeCGConnector<
 		}
 		this.replicantMetadata = this.getEmptyBundleMap() as Record<string, Record<string, ReplicantMetadata>>
 		this.replicants = this.getEmptyBundleMap() as Bundles & DefaultBundleMap
+		this.requiredBundleVersions = requiredBundleVersions;
 
 		this.opts = opts
 
@@ -166,15 +176,22 @@ export class NodeCGConnector<
 
 	private async onBundleListChange() {
 		const missingBundles: string[] = []
+		let badBundleVersionMessage = '';
 
 		for (const [bundle, replicants] of Object.entries(this.replicantNames)) {
 			if (bundle === 'nodecg') continue
+			const installedBundle = this.replicants['nodecg']['bundles'].find(nodecgBundle => nodecgBundle.name === bundle);
 
-			if (this.replicants['nodecg']['bundles'].every((installedBundle) => installedBundle.name !== bundle)) {
+			if (installedBundle == null) {
 				missingBundles.push(bundle)
 				;(this.replicants as Record<string, unknown>)[bundle] = {}
 				this.replicantMetadata[bundle] = {}
 				continue
+			}
+
+			const requiredVersion = this.requiredBundleVersions[bundle];
+			if (requiredVersion != null && !semver.satisfies(installedBundle.version, requiredVersion)) {
+				badBundleVersionMessage += `${bundle} version does not match range ${requiredVersion} (Currently installed: ${installedBundle.version}). `
 			}
 
 			for (const replicant of replicants) {
@@ -195,6 +212,8 @@ export class NodeCGConnector<
 				InstanceStatus.UnknownError,
 				`Some NodeCG bundles are required by this module but are not installed: ${missingBundles.join(', ')}`
 			)
+		} else if (badBundleVersionMessage.length > 0) {
+			this.instance.updateStatus(InstanceStatus.UnknownWarning, `${badBundleVersionMessage} This module may not be compatible with the currently installed bundle versions.`)
 		} else {
 			this.instance.updateStatus(InstanceStatus.Ok)
 		}

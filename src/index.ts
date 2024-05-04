@@ -72,7 +72,7 @@ class IPLOCInstance extends InstanceBase<IPLOCModuleConfig> {
 			},
 		})
 
-		this.socket = new NodeCGConnector(
+		this.socket = new NodeCGConnector<IPLOCBundleMap>(
 			this,
 			{
 				host: config.host,
@@ -91,6 +91,9 @@ class IPLOCInstance extends InstanceBase<IPLOCModuleConfig> {
 					'obsState',
 					'gameAutomationData',
 				],
+			},
+			{
+				[DASHBOARD_BUNDLE_NAME]: '^4.14.0'
 			}
 		)
 
