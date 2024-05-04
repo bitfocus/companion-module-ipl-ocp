@@ -146,7 +146,7 @@ export function getFeedbackDefinitions(
 			description: "Changes this toggle's color and text to reflect the dashboard's automation action state.",
 			options: [],
 			callback: () => {
-				if (socket.replicants[DASHBOARD_BUNDLE_NAME].obsData?.status !== 'CONNECTED') {
+				if (socket.replicants[DASHBOARD_BUNDLE_NAME].obsState?.status !== 'CONNECTED') {
 					return {
 						text: 'OFF',
 						bgcolor: combineRgb(0, 0, 0),
@@ -172,8 +172,11 @@ export function getFeedbackDefinitions(
 						color: combineRgb(255, 255, 255),
 					}
 				} else {
-					return socket.replicants[DASHBOARD_BUNDLE_NAME].obsData?.gameplayScene ===
-						socket.replicants[DASHBOARD_BUNDLE_NAME].obsData?.currentScene
+					const obsState = socket.replicants[DASHBOARD_BUNDLE_NAME].obsState
+					const currentConfig = socket.replicants[DASHBOARD_BUNDLE_NAME].obsConfig?.find(
+						(item) => item.sceneCollection === obsState.currentSceneCollection
+					)
+					return currentConfig?.gameplayScene === obsState.currentScene
 						? {
 								text: 'END GAME',
 								bgcolor: combineRgb(255, 0, 0),

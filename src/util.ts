@@ -6,7 +6,8 @@ import {
 	MusicShown,
 	NextRoundStartTime,
 	NextRound,
-	ObsData,
+	ObsState,
+	ObsConfig,
 	GameAutomationData,
 } from './types'
 
@@ -37,6 +38,7 @@ export interface IPLOCReplicantMap {
 	musicShown?: MusicShown
 	nextRoundStartTime?: NextRoundStartTime
 	nextRound?: NextRound
-	obsData?: ObsData
+	obsState?: ObsState
+	obsConfig?: ObsConfig
 	gameAutomationData?: GameAutomationData
 }

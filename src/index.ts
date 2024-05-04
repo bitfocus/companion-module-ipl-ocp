@@ -87,7 +87,8 @@ class IPLOCInstance extends InstanceBase<IPLOCModuleConfig> {
 					'musicShown',
 					'nextRoundStartTime',
 					'nextRound',
-					'obsData',
+					'obsConfig',
+					'obsState',
 					'gameAutomationData',
 				],
 			}
@@ -158,7 +159,8 @@ class IPLOCInstance extends InstanceBase<IPLOCModuleConfig> {
 				this.checkFeedbacks(IPLOCFeedback.show_next_match_on_stream)
 				break
 			case 'gameAutomationData':
-			case 'obsData':
+			case 'obsState':
+			case 'obsConfig':
 				this.checkFeedbacks(IPLOCFeedback.automation_action_state)
 				break
 			case 'bundles':

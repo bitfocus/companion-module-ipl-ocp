@@ -355,21 +355,23 @@ export function getActionDefinitions(
 			name: 'Execute the next automation action (Start/Stop game, etc.)',
 			options: [],
 			callback: () => {
-				if (socket.replicants[DASHBOARD_BUNDLE_NAME].obsData?.status !== 'CONNECTED') {
+				if (socket.replicants[DASHBOARD_BUNDLE_NAME].obsState?.status !== 'CONNECTED') {
 					self.log('error', 'The OBS socket is not enabled!')
 					return
 				}
 
 				const nextTaskName = socket.replicants[DASHBOARD_BUNDLE_NAME].gameAutomationData?.nextTaskForAction?.name ?? ''
+				const obsState = socket.replicants[DASHBOARD_BUNDLE_NAME].obsState
+				const currentConfig = socket.replicants[DASHBOARD_BUNDLE_NAME].obsConfig?.find(
+					(item) => item.sceneCollection === obsState.currentSceneCollection
+				)
+
 				if (
 					socket.replicants[DASHBOARD_BUNDLE_NAME].gameAutomationData?.actionInProgress !== 'NONE' &&
 					!isBlank(nextTaskName)
 				) {
 					socket.sendMessage('fastForwardToNextGameAutomationTask', DASHBOARD_BUNDLE_NAME)
-				} else if (
-					socket.replicants[DASHBOARD_BUNDLE_NAME].obsData?.gameplayScene ===
-					socket.replicants[DASHBOARD_BUNDLE_NAME].obsData?.currentScene
-				) {
+				} else if (currentConfig?.gameplayScene === obsState.currentScene) {
 					socket.sendMessage('endGame', DASHBOARD_BUNDLE_NAME)
 				} else {
 					socket.sendMessage('startGame', DASHBOARD_BUNDLE_NAME)
