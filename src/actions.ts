@@ -388,10 +388,21 @@ export function getActionDefinitions(
 		if (dashboardVersion != null && semver.gte(dashboardVersion, '4.8.0')) {
 			actions['start_next_match'] = {
 				name: 'Start the next match',
-				description: "Set the active match to the next match's teams.",
+				description: 'Set the active match to the next match\'s teams.',
 				options: [],
 				callback: () => {
 					socket.sendMessage('beginNextMatch', DASHBOARD_BUNDLE_NAME)
+				},
+			}
+		}
+
+		if (dashboardVersion != null && semver.gte(dashboardVersion, '4.14.0')) {
+			actions['set_active_colors_from_gameplay_source'] = {
+				name: 'Get colors from OBS',
+				description: 'Read the ink colors in play from OBS and set them as the active match\'s colors',
+				options: [],
+				callback: () => {
+					socket.sendMessage('setActiveColorsFromGameplaySource', DASHBOARD_BUNDLE_NAME)
 				},
 			}
 		}
