@@ -1,13 +1,13 @@
 import { DateTime } from 'luxon'
-import { CompanionActionDefinitions, InstanceBase } from '@companion-module/base'
-import { IPLOCModuleConfig } from './config'
+import { CompanionActionDefinitions } from '@companion-module/base'
 import { NodeCGConnector } from './NodeCGConnector'
 import { ActiveBreakScene } from './types'
-import { IPLOCBundleMap, DASHBOARD_BUNDLE_NAME, isBlank } from './util'
+import { DASHBOARD_BUNDLE_NAME, IPLOCBundleMap, isBlank, UNKNOWN_MODE_NAME, UNKNOWN_STAGE_NAME } from './util'
 import semver from 'semver'
+import { IPLOCInstance } from './index'
 
 export function getActionDefinitions(
-	self: InstanceBase<IPLOCModuleConfig>,
+	self: IPLOCInstance,
 	socket: NodeCGConnector<IPLOCBundleMap>
 ): CompanionActionDefinitions {
 	const actions: CompanionActionDefinitions = {
@@ -378,6 +378,88 @@ export function getActionDefinitions(
 				}
 			},
 		},
+		set_next_selected_mode: {
+			name: 'Select the next mode',
+			options: [
+				{
+					type: 'dropdown',
+					id: 'mode',
+					label: 'Mode',
+					default: UNKNOWN_MODE_NAME,
+					choices: self.modeChoices,
+				},
+			],
+			callback: (action) => {
+				if (isBlank(action.options.mode as string)) {
+					return
+				}
+
+				self.setNextSelectedMode(action.options.mode as string)
+			},
+		},
+		set_next_selected_stage: {
+			name: 'Select the next stage',
+			options: [
+				{
+					type: 'dropdown',
+					id: 'stage',
+					label: 'Stage',
+					default: UNKNOWN_STAGE_NAME,
+					choices: self.stageChoices,
+				},
+			],
+			callback: (action) => {
+				if (isBlank(action.options.stage as string)) {
+					return
+				}
+
+				self.setNextSelectedStage(action.options.stage as string)
+			},
+		},
+		update_next_game: {
+			name: 'Update next game',
+			description:
+				'Updates the next game with the selected stage and mode (See actions "Select the next mode" and "Select the next stage")',
+			options: [
+				{
+					type: 'checkbox',
+					id: 'resetStageOnSuccess',
+					label: 'Remove next selected stage on success?',
+					default: true,
+				},
+				{
+					type: 'checkbox',
+					id: 'resetModeOnSuccess',
+					label: 'Remove next selected mode on success?',
+					default: true,
+				},
+			],
+			callback: (action) => {
+				const activeRound = socket.replicants[DASHBOARD_BUNDLE_NAME].activeRound
+				if (activeRound == null) return
+				const nextGameIndex = activeRound.games.findIndex((game) => game.winner === 'none')
+				if (nextGameIndex === -1) return
+
+				const newGames = activeRound.games.map((game, i) =>
+					i === nextGameIndex
+						? {
+								...game,
+								mode: self.nextSelectedMode,
+								stage: self.nextSelectedStage,
+						  }
+						: game
+				)
+				socket.sendMessage('updateActiveGames', DASHBOARD_BUNDLE_NAME, {
+					games: newGames,
+				})
+				if (action.options.resetModeOnSuccess) {
+					self.setNextSelectedMode(UNKNOWN_MODE_NAME)
+				}
+				if (action.options.resetStageOnSuccess) {
+					self.setNextSelectedStage(UNKNOWN_STAGE_NAME)
+				}
+			},
+		},
 	}
 
 	if (socket.replicants.nodecg != null) {
@@ -388,7 +470,7 @@ export function getActionDefinitions(
 		if (dashboardVersion != null && semver.gte(dashboardVersion, '4.8.0')) {
 			actions['start_next_match'] = {
 				name: 'Start the next match',
-				description: 'Set the active match to the next match\'s teams.',
+				description: "Set the active match to the next match's teams.",
 				options: [],
 				callback: () => {
 					socket.sendMessage('beginNextMatch', DASHBOARD_BUNDLE_NAME)
@@ -399,7 +481,7 @@ export function getActionDefinitions(
 		if (dashboardVersion != null && semver.gte(dashboardVersion, '4.14.0')) {
 			actions['set_active_colors_from_gameplay_source'] = {
 				name: 'Get colors from OBS',
-				description: 'Read the ink colors in play from OBS and set them as the active match\'s colors',
+				description: "Read the ink colors in play from OBS and set them as the active match's colors",
 				options: [],
 				callback: () => {
 					socket.sendMessage('setActiveColorsFromGameplaySource', DASHBOARD_BUNDLE_NAME)

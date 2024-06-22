@@ -74,7 +74,7 @@ export class NodeCGConnector<
 		}
 		this.replicantMetadata = this.getEmptyBundleMap() as Record<string, Record<string, ReplicantMetadata>>
 		this.replicants = this.getEmptyBundleMap() as Bundles & DefaultBundleMap
-		this.requiredBundleVersions = requiredBundleVersions;
+		this.requiredBundleVersions = requiredBundleVersions
 
 		this.opts = opts
 
@@ -176,11 +176,11 @@ export class NodeCGConnector<
 
 	private async onBundleListChange() {
 		const missingBundles: string[] = []
-		let badBundleVersionMessage = '';
+		let badBundleVersionMessage = ''
 
 		for (const [bundle, replicants] of Object.entries(this.replicantNames)) {
 			if (bundle === 'nodecg') continue
-			const installedBundle = this.replicants['nodecg']['bundles'].find(nodecgBundle => nodecgBundle.name === bundle);
+			const installedBundle = this.replicants['nodecg']['bundles'].find((nodecgBundle) => nodecgBundle.name === bundle)
 
 			if (installedBundle == null) {
 				missingBundles.push(bundle)
@@ -189,7 +189,7 @@ export class NodeCGConnector<
 				continue
 			}
 
-			const requiredVersion = this.requiredBundleVersions[bundle];
+			const requiredVersion = this.requiredBundleVersions[bundle]
 			if (requiredVersion != null && !semver.satisfies(installedBundle.version, requiredVersion)) {
 				badBundleVersionMessage += `${bundle} version does not match range ${requiredVersion} (Currently installed: ${installedBundle.version}). `
 			}
@@ -213,7 +213,10 @@ export class NodeCGConnector<
 				`Some NodeCG bundles are required by this module but are not installed: ${missingBundles.join(', ')}`
 			)
 		} else if (badBundleVersionMessage.length > 0) {
-			this.instance.updateStatus(InstanceStatus.UnknownWarning, `${badBundleVersionMessage} This module may not be compatible with the currently installed bundle versions.`)
+			this.instance.updateStatus(
+				InstanceStatus.UnknownWarning,
+				`${badBundleVersionMessage} This module may not be compatible with the currently installed bundle versions.`
+			)
 		} else {
 			this.instance.updateStatus(InstanceStatus.Ok)
 		}
@@ -252,20 +255,30 @@ export class NodeCGConnector<
 		})
 	}
 
-	public sendMessage<Bundle extends keyof Bundles>(messageName: string, bundleName: Bundle, data?: unknown) {
-		this.socket?.emit(
-			'message',
-			{
-				bundleName: String(bundleName),
-				messageName: messageName,
-				content: data,
-			},
-			(err) => {
-				if (err != null) {
-					this.instance.log('error', `Sending message returned error: ${err}`)
+	public sendMessage<Bundle extends keyof Bundles>(
+		messageName: string,
+		bundleName: Bundle,
+		data?: unknown
+	): Promise<unknown> {
+		return new Promise((resolve, reject) => {
+			this.socket?.emit(
+				'message',
+				{
+					bundleName: String(bundleName),
+					messageName: messageName,
+					content: data,
+				},
+				(err, result) => {
+					this.instance.log('info', `sup, ${err}, ${result}`)
+					if (err != null) {
+						this.instance.log('error', `Sending message returned error: ${err}`)
+						reject(err)
+					} else {
+						resolve(result)
+					}
 				}
-			}
-		)
+			)
+		})
 	}
 
 	public isConnected(): boolean {

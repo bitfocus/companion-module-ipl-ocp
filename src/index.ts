@@ -1,10 +1,16 @@
-import { combineRgb, InstanceBase, runEntrypoint, SomeCompanionConfigField } from '@companion-module/base'
+import {
+	combineRgb,
+	DropdownChoice,
+	InstanceBase,
+	runEntrypoint,
+	SomeCompanionConfigField,
+} from '@companion-module/base'
 import { modeNameToShortModeName, stageNameToShortStageName } from './helpers/SplatoonData'
 import { NodeCGConnector } from './NodeCGConnector'
 import { getActionDefinitions } from './actions'
 import { getFeedbackDefinitions, IPLOCFeedback } from './feedbacks'
 import { getConfigFields } from './config'
-import { IPLOCBundleMap, IPLOCReplicantMap } from './util'
+import { IPLOCBundleMap, IPLOCReplicantMap, UNKNOWN_MODE_NAME, UNKNOWN_STAGE_NAME } from './util'
 
 const DASHBOARD_BUNDLE_NAME = 'ipl-overlay-controls'
 
@@ -22,8 +28,14 @@ function isEmpty(obj: {} | undefined): boolean {
 	return obj != null && Object.keys(obj).length === 0
 }
 
-class IPLOCInstance extends InstanceBase<IPLOCModuleConfig> {
+export class IPLOCInstance extends InstanceBase<IPLOCModuleConfig> {
 	private socket!: NodeCGConnector<IPLOCBundleMap>
+
+	public modeChoices: DropdownChoice[] = []
+	public stageChoices: DropdownChoice[] = []
+
+	public nextSelectedMode: string = UNKNOWN_MODE_NAME
+	public nextSelectedStage: string = UNKNOWN_STAGE_NAME
 
 	public async init(config: IPLOCModuleConfig): Promise<void> {
 		this.setVariableDefinitions([
@@ -90,10 +102,11 @@ class IPLOCInstance extends InstanceBase<IPLOCModuleConfig> {
 					'obsConfig',
 					'obsState',
 					'gameAutomationData',
+					'localeInfo',
 				],
 			},
 			{
-				[DASHBOARD_BUNDLE_NAME]: '^4.14.0'
+				[DASHBOARD_BUNDLE_NAME]: '^4.14.0',
 			}
 		)
 
@@ -120,6 +133,16 @@ class IPLOCInstance extends InstanceBase<IPLOCModuleConfig> {
 
 	public getConfigFields(): SomeCompanionConfigField[] {
 		return getConfigFields()
+	}
+
+	public setNextSelectedStage(stage: string) {
+		this.nextSelectedStage = stage
+		this.checkFeedbacks(IPLOCFeedback.next_selected_stage)
+	}
+
+	public setNextSelectedMode(mode: string) {
+		this.nextSelectedMode = mode
+		this.checkFeedbacks(IPLOCFeedback.next_selected_mode)
 	}
 
 	/**
@@ -167,7 +190,18 @@ class IPLOCInstance extends InstanceBase<IPLOCModuleConfig> {
 				this.checkFeedbacks(IPLOCFeedback.automation_action_state)
 				break
 			case 'bundles':
+			case 'localeInfo':
+				this.modeChoices = Object.entries(this.socket.replicants[DASHBOARD_BUNDLE_NAME].localeInfo?.modes ?? {}).map(
+					([stage, name]) => ({ id: stage, label: name })
+				)
+				this.stageChoices = Object.entries(this.socket.replicants[DASHBOARD_BUNDLE_NAME].localeInfo?.stages ?? {}).map(
+					([stage, name]) => ({ id: stage, label: name })
+				)
+				this.setNextSelectedMode(this.nextSelectedMode)
+				this.setNextSelectedStage(this.nextSelectedStage)
+
 				this.setActionDefinitions(getActionDefinitions(this, this.socket))
+				this.setFeedbackDefinitions(getFeedbackDefinitions(this, this.socket))
 		}
 	}
 }

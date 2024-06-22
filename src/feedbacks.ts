@@ -1,8 +1,8 @@
 import { colord } from 'colord'
-import { CompanionFeedbackDefinitions, InstanceBase, combineRgb } from '@companion-module/base'
-import { IPLOCModuleConfig } from './config'
-import { DASHBOARD_BUNDLE_NAME, IPLOCBundleMap, isBlank, isEmpty } from './util'
+import { CompanionFeedbackDefinitions, combineRgb } from '@companion-module/base'
+import { DASHBOARD_BUNDLE_NAME, IPLOCBundleMap, isBlank, isEmpty, UNKNOWN_MODE_NAME, UNKNOWN_STAGE_NAME } from './util'
 import { NodeCGConnector } from './NodeCGConnector'
+import { IPLOCInstance } from './index'
 
 export enum IPLOCFeedback {
 	team_colour = 'team_colour',
@@ -12,14 +12,17 @@ export enum IPLOCFeedback {
 	show_next_match_on_stream = 'show_next_match_on_stream',
 	break_scene_visibility = 'break_scene_visibility',
 	automation_action_state = 'automation_action_state',
+	next_selected_stage = 'next_selected_stage',
+	next_selected_mode = 'next_selected_mode',
 }
 
 export function getFeedbackDefinitions(
-	_self: InstanceBase<IPLOCModuleConfig>,
+	self: IPLOCInstance,
 	socket: NodeCGConnector<IPLOCBundleMap>
 ): CompanionFeedbackDefinitions {
 	return {
 		...socket.getFeedbacks(),
+
 		[IPLOCFeedback.team_colour]: {
 			type: 'advanced',
 			name: 'Change BG colour to teams colour',
@@ -188,6 +191,50 @@ export function getFeedbackDefinitions(
 								color: combineRgb(0, 0, 0),
 						  }
 				}
+			},
+		},
+
+		[IPLOCFeedback.next_selected_mode]: {
+			type: 'boolean',
+			name: 'Next selected mode',
+			description: 'If next selected mode matches',
+			defaultStyle: {
+				bgcolor: combineRgb(0, 255, 0),
+				color: combineRgb(0, 0, 0),
+			},
+			options: [
+				{
+					type: 'dropdown',
+					id: 'mode',
+					label: 'Mode',
+					default: UNKNOWN_MODE_NAME,
+					choices: self.modeChoices,
+				},
+			],
+			callback: (feedback) => {
+				return self.nextSelectedMode === feedback.options.mode
+			},
+		},
+
+		[IPLOCFeedback.next_selected_stage]: {
+			type: 'boolean',
+			name: 'Next selected stage',
+			description: 'If next selected stage matches',
+			defaultStyle: {
+				bgcolor: combineRgb(0, 255, 0),
+				color: combineRgb(0, 0, 0),
+			},
+			options: [
+				{
+					type: 'dropdown',
+					id: 'stage',
+					label: 'Stage',
+					default: UNKNOWN_STAGE_NAME,
+					choices: self.stageChoices,
+				},
+			],
+			callback: (feedback) => {
+				return self.nextSelectedStage === feedback.options.stage
 			},
 		},
 	}

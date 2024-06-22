@@ -9,6 +9,7 @@ import {
 	ObsState,
 	ObsConfig,
 	GameAutomationData,
+	LocaleInfo,
 } from './types'
 
 /**
@@ -25,6 +26,8 @@ export function isBlank(value?: string | null): boolean {
 }
 
 export const DASHBOARD_BUNDLE_NAME = 'ipl-overlay-controls'
+export const UNKNOWN_STAGE_NAME = 'Unknown Stage'
+export const UNKNOWN_MODE_NAME = 'Unknown Mode'
 
 export type IPLOCBundleMap = {
 	[DASHBOARD_BUNDLE_NAME]: IPLOCReplicantMap
@@ -41,4 +44,5 @@ export interface IPLOCReplicantMap {
 	obsState?: ObsState
 	obsConfig?: ObsConfig
 	gameAutomationData?: GameAutomationData
+	localeInfo?: LocaleInfo
 }
