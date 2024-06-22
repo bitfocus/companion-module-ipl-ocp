@@ -63,6 +63,7 @@ export function getFeedbackDefinitions(
 			description: 'Change background colour when scoreboard is visible.',
 			defaultStyle: {
 				bgcolor: combineRgb(0, 255, 0),
+				color: combineRgb(0, 0, 0),
 			},
 			options: [],
 			callback: function () {
@@ -81,6 +82,7 @@ export function getFeedbackDefinitions(
 			description: 'Change background colour when music is visible.',
 			defaultStyle: {
 				bgcolor: combineRgb(0, 255, 0),
+				color: combineRgb(0, 0, 0),
 			},
 			options: [],
 			callback: function () {
@@ -94,6 +96,7 @@ export function getFeedbackDefinitions(
 			description: 'Change background colour when timer is visible.',
 			defaultStyle: {
 				bgcolor: combineRgb(0, 255, 0),
+				color: combineRgb(0, 0, 0),
 			},
 			options: [],
 			callback: function () {
@@ -120,6 +123,7 @@ export function getFeedbackDefinitions(
 			description: 'Change background colour when selected break scene is visible.',
 			defaultStyle: {
 				bgcolor: combineRgb(0, 255, 0),
+				color: combineRgb(0, 0, 0),
 			},
 			options: [
 				{
