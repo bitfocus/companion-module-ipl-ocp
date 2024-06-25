@@ -1,6 +1,6 @@
 {
 	"name": "ipl-ocp",
-	"version": "3.0.0",
+	"version": "4.0.0",
 	"main": "dist/index.js",
 	"scripts": {
 		"build": "rimraf dist && yarn build:main",
