@@ -269,7 +269,6 @@ export class NodeCGConnector<
 					content: data,
 				},
 				(err, result) => {
-					this.instance.log('info', `sup, ${err}, ${result}`)
 					if (err != null) {
 						this.instance.log('error', `Sending message returned error: ${err}`)
 						reject(err)
