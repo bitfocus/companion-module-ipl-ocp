@@ -1,15 +1,17 @@
 import { DateTime } from 'luxon'
-import { CompanionActionDefinitions, InstanceBase } from '@companion-module/base'
-import { IPLOCModuleConfig } from './config'
+import { CompanionActionDefinitions } from '@companion-module/base'
 import { NodeCGConnector } from './NodeCGConnector'
 import { ActiveBreakScene } from './types'
-import { IPLOCBundleMap, DASHBOARD_BUNDLE_NAME, isBlank } from './util'
+import { DASHBOARD_BUNDLE_NAME, IPLOCBundleMap, isBlank, UNKNOWN_MODE_NAME, UNKNOWN_STAGE_NAME } from './util'
+import semver from 'semver'
+import { IPLOCInstance } from './index'
 
 export function getActionDefinitions(
-	self: InstanceBase<IPLOCModuleConfig>,
+	self: IPLOCInstance,
 	socket: NodeCGConnector<IPLOCBundleMap>
 ): CompanionActionDefinitions {
-	return {
+	const actions: CompanionActionDefinitions = {
+		...socket.getActions(),
 		set_win: {
 			name: 'Set win on last game',
 			options: [
@@ -28,7 +30,7 @@ export function getActionDefinitions(
 				// First check we don't go over the number of games that can be assigned
 				const activeRound = socket.replicants[DASHBOARD_BUNDLE_NAME]['activeRound']
 				if (activeRound != null && activeRound.teamA.score + activeRound.teamB.score < activeRound.games.length) {
-					socket.sendMessage('setWinner', { winner: action.options.team })
+					socket.sendMessage('setWinner', DASHBOARD_BUNDLE_NAME, { winner: action.options.team })
 				}
 			},
 		},
@@ -39,7 +41,7 @@ export function getActionDefinitions(
 				// Check there's scores to remove
 				const activeRound = socket.replicants[DASHBOARD_BUNDLE_NAME]['activeRound']
 				if (activeRound != null && activeRound.teamA.score + activeRound.teamB.score > 0) {
-					socket.sendMessage('removeWinner')
+					socket.sendMessage('removeWinner', DASHBOARD_BUNDLE_NAME)
 				}
 			},
 		},
@@ -47,21 +49,21 @@ export function getActionDefinitions(
 			name: 'Show Casters on Main Scene.',
 			options: [],
 			callback: () => {
-				socket.sendMessage('mainShowCasters')
+				socket.sendMessage('mainShowCasters', DASHBOARD_BUNDLE_NAME)
 			},
 		},
 		show_predictions: {
 			name: 'Show Predictions.',
 			options: [],
 			callback: () => {
-				socket.sendMessage('showPredictionData')
+				socket.sendMessage('showPredictionData', DASHBOARD_BUNDLE_NAME)
 			},
 		},
 		get_live_commentators: {
 			name: 'Load Commentators from VC.',
 			options: [],
 			callback: () => {
-				socket.sendMessage('getLiveCommentators')
+				socket.sendMessage('getLiveCommentators', DASHBOARD_BUNDLE_NAME)
 			},
 		},
 		swap_colour: {
@@ -91,9 +93,9 @@ export function getActionDefinitions(
 			],
 			callback: (action) => {
 				if (action.options.direction === 'next') {
-					socket.sendMessage('switchToNextColor')
+					socket.sendMessage('switchToNextColor', DASHBOARD_BUNDLE_NAME)
 				} else if (action.options.direction === 'previous') {
-					socket.sendMessage('switchToPreviousColor')
+					socket.sendMessage('switchToPreviousColor', DASHBOARD_BUNDLE_NAME)
 				}
 			},
 		},
@@ -196,16 +198,17 @@ export function getActionDefinitions(
 			options: [
 				{
 					type: 'textinput',
+					useVariables: true,
 					label: '+ Minutes',
 					id: 'minutes',
 					tooltip:
 						'How many minutes in the future you want the time set to. Must be numeric, may be a variable reference.',
 					default: '5',
-					useVariables: true,
 				},
 			],
-			callback: async (action, context) => {
-				const parsedMinutes = await context.parseVariablesInString(String(action.options.minutes))
+			callback: async (action) => {
+				const parsedMinutes = await self.parseVariablesInString(String(action.options.minutes))
+
 				const minutes = Number(parsedMinutes)
 
 				if (minutes != null && !isNaN(minutes)) {
@@ -231,15 +234,15 @@ export function getActionDefinitions(
 			options: [
 				{
 					type: 'textinput',
+					useVariables: true,
 					label: '+ Minutes',
 					id: 'minutes',
 					tooltip: 'How many minutes to add to the timer. Must be numeric, may be a variable reference.',
 					default: '1',
-					useVariables: true,
 				},
 			],
-			callback: async (action, context) => {
-				const parsedMinutes = await context.parseVariablesInString(String(action.options.minutes))
+			callback: async (action) => {
+				const parsedMinutes = await self.parseVariablesInString(String(action.options.minutes))
 				const minutes = Number(parsedMinutes)
 				if (minutes == null || isNaN(minutes)) {
 					self.log('error', `Value of option "Minutes" was "${parsedMinutes}", which is not numeric!`)
@@ -250,7 +253,6 @@ export function getActionDefinitions(
 				}
 
 				const normalizedMinutes = Math.max(0, minutes)
-				// @ts-ignore: TypeScript doesn't understand the above null check
 				const time = DateTime.fromISO(socket.replicants[DASHBOARD_BUNDLE_NAME].nextRoundStartTime.startTime)
 					.plus({ minutes: normalizedMinutes })
 					.toUTC()
@@ -353,33 +355,149 @@ export function getActionDefinitions(
 			name: 'Execute the next automation action (Start/Stop game, etc.)',
 			options: [],
 			callback: () => {
-				if (socket.replicants[DASHBOARD_BUNDLE_NAME].obsData?.status !== 'CONNECTED') {
+				if (socket.replicants[DASHBOARD_BUNDLE_NAME].obsState?.status !== 'CONNECTED') {
 					self.log('error', 'The OBS socket is not enabled!')
 					return
 				}
 
 				const nextTaskName = socket.replicants[DASHBOARD_BUNDLE_NAME].gameAutomationData?.nextTaskForAction?.name ?? ''
+				const obsState = socket.replicants[DASHBOARD_BUNDLE_NAME].obsState
+				const currentConfig = socket.replicants[DASHBOARD_BUNDLE_NAME].obsConfig?.find(
+					(item) => item.sceneCollection === obsState.currentSceneCollection
+				)
+
 				if (
 					socket.replicants[DASHBOARD_BUNDLE_NAME].gameAutomationData?.actionInProgress !== 'NONE' &&
 					!isBlank(nextTaskName)
 				) {
-					socket.sendMessage('fastForwardToNextGameAutomationTask')
-				} else if (
-					socket.replicants[DASHBOARD_BUNDLE_NAME].obsData?.gameplayScene ===
-					socket.replicants[DASHBOARD_BUNDLE_NAME].obsData?.currentScene
-				) {
-					socket.sendMessage('endGame')
+					socket.sendMessage('fastForwardToNextGameAutomationTask', DASHBOARD_BUNDLE_NAME)
+				} else if (currentConfig?.gameplayScene === obsState.currentScene) {
+					socket.sendMessage('endGame', DASHBOARD_BUNDLE_NAME)
 				} else {
-					socket.sendMessage('startGame')
+					socket.sendMessage('startGame', DASHBOARD_BUNDLE_NAME)
 				}
 			},
 		},
-		reconnect: {
-			name: 'Reconnect to NodeCG',
+		cancel_automation_action: {
+			name: 'Cancel the ongoing automation action',
 			options: [],
 			callback: () => {
-				socket.start()
+				if (socket.replicants[DASHBOARD_BUNDLE_NAME].gameAutomationData?.actionInProgress !== 'NONE') {
+					socket.sendMessage('cancelAutomationAction', DASHBOARD_BUNDLE_NAME)
+				}
+			},
+		},
+		set_next_selected_mode: {
+			name: 'Select the next mode',
+			options: [
+				{
+					type: 'dropdown',
+					id: 'mode',
+					label: 'Mode',
+					default: UNKNOWN_MODE_NAME,
+					choices: self.modeChoices,
+				},
+			],
+			callback: (action) => {
+				if (isBlank(action.options.mode as string)) {
+					return
+				}
+
+				self.setNextSelectedMode(action.options.mode as string)
+			},
+		},
+		set_next_selected_stage: {
+			name: 'Select the next stage',
+			options: [
+				{
+					type: 'dropdown',
+					id: 'stage',
+					label: 'Stage',
+					default: UNKNOWN_STAGE_NAME,
+					choices: self.stageChoices,
+				},
+			],
+			callback: (action) => {
+				if (isBlank(action.options.stage as string)) {
+					return
+				}
+
+				self.setNextSelectedStage(action.options.stage as string)
+			},
+		},
+		update_next_game: {
+			name: 'Update next game',
+			description:
+				'Updates the next game with the selected stage and mode (See actions "Select the next mode" and "Select the next stage")',
+			options: [
+				{
+					type: 'checkbox',
+					id: 'resetStageOnSuccess',
+					label: 'Remove next selected stage on success?',
+					default: true,
+				},
+				{
+					type: 'checkbox',
+					id: 'resetModeOnSuccess',
+					label: 'Remove next selected mode on success?',
+					default: true,
+				},
+			],
+			callback: (action) => {
+				const activeRound = socket.replicants[DASHBOARD_BUNDLE_NAME].activeRound
+				if (activeRound == null) return
+				const nextGameIndex = activeRound.games.findIndex((game) => game.winner === 'none')
+				if (nextGameIndex === -1) return
+
+				const newGames = activeRound.games.map((game, i) =>
+					i === nextGameIndex
+						? {
+								...game,
+								mode: self.nextSelectedMode,
+								stage: self.nextSelectedStage,
+						  }
+						: game
+				)
+				socket.sendMessage('updateActiveGames', DASHBOARD_BUNDLE_NAME, {
+					games: newGames,
+				})
+				if (action.options.resetModeOnSuccess) {
+					self.setNextSelectedMode(UNKNOWN_MODE_NAME)
+				}
+				if (action.options.resetStageOnSuccess) {
+					self.setNextSelectedStage(UNKNOWN_STAGE_NAME)
+				}
 			},
 		},
 	}
+
+	if (socket.replicants.nodecg != null) {
+		const dashboardVersion = socket.replicants.nodecg.bundles?.find(
+			(bundle) => bundle.name === DASHBOARD_BUNDLE_NAME
+		)?.version
+
+		if (dashboardVersion != null && semver.gte(dashboardVersion, '4.8.0')) {
+			actions['start_next_match'] = {
+				name: 'Start the next match',
+				description: "Set the active match to the next match's teams.",
+				options: [],
+				callback: () => {
+					socket.sendMessage('beginNextMatch', DASHBOARD_BUNDLE_NAME)
+				},
+			}
+		}
+
+		if (dashboardVersion != null && semver.gte(dashboardVersion, '4.14.0')) {
+			actions['set_active_colors_from_gameplay_source'] = {
+				name: 'Get colors from OBS',
+				description: "Read the ink colors in play from OBS and set them as the active match's colors",
+				options: [],
+				callback: () => {
+					socket.sendMessage('setActiveColorsFromGameplaySource', DASHBOARD_BUNDLE_NAME)
+				},
+			}
+		}
+	}
+
+	return actions
 }

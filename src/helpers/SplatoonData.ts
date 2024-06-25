@@ -24,6 +24,20 @@ export const stageNameToShortStageName: Record<string, string> = {
 	'Walleye Warehouse': 'Walleye',
 	'Skipper Pavilion': 'Skipper',
 	'Unknown Stage': '???',
+	"Museum d'Alfonsino": 'Museum',
+	'Scorch Gorge': 'Scorch',
+	'Eeltail Alley': 'Eeltail',
+	'Hagglefish Market': 'Haggle',
+	'Undertow Spillway': 'Undertow',
+	'Mincemeat Metalworks': 'Mincemeat',
+	'Hammerhead Bridge': 'Hammerhead',
+	'Mahi-Mahi Resort': 'Mahi',
+	'Brinewater Springs': 'Brinewater',
+	'Flounder Heights': 'Flounder',
+	"Um'ami Ruins": "Um'ami",
+	'Barnacle & Dime': 'Barnacle',
+	'Crableg Capital': 'Crableg',
+	'Shipshape Cargo Co.': 'Shipshape',
 }
 
 export const modeNameToShortModeName: Record<string, string> = {

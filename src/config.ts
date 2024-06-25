@@ -1,4 +1,4 @@
-import { SomeCompanionConfigField } from '@companion-module/base'
+import { Regex, SomeCompanionConfigField } from '@companion-module/base'
 
 export interface IPLOCModuleConfig {
 	host?: string
@@ -12,25 +12,24 @@ export function getConfigFields(): SomeCompanionConfigField[] {
 			id: 'info',
 			width: 12,
 			label: 'Information',
-			value: 'This Module has been tested on IPL-OCP 4.0.0',
+			value: 'Tested with ipl-overlay-controls 4.14.2 running on NodeCG 2.2',
 		},
 		{
 			type: 'textinput',
 			id: 'host',
 			label: 'Target host',
-			tooltip: 'The host of the NodeCG instance running IPL OCP',
+			tooltip: 'The host of the NodeCG instance running ipl-overlay-controls',
 			width: 6,
-			default: 'localhost',
+			default: '127.0.0.1',
 		},
 		{
-			type: 'number',
+			type: 'textinput',
 			id: 'port',
 			label: 'Port',
-			tooltip: 'The port of the NodeCG instance running IPL OCP',
+			tooltip: 'The port of the NodeCG instance running ipl-overlay-controls',
 			width: 6,
-			default: 9090,
-			min: 1,
-			max: 65535,
+			regex: Regex.NUMBER,
+			default: '9090',
 		},
 	]
 }
