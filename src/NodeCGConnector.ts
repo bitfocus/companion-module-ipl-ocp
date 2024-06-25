@@ -119,7 +119,15 @@ export class NodeCGConnector<
 		})
 
 		this.socket.on('connect_error', (err) => {
-			this.instance.log('error', `Socket.io connection error - ${err}`)
+			const message = 'code' in err && err.code === 'parser error'
+				? `Socket.io connection error - ${err} (Is your NodeCG installation up to date?)`
+				: `Socket.io connection error - ${err}`
+
+			this.instance.updateStatus(
+				InstanceStatus.ConnectionFailure,
+				message
+			)
+			this.instance.log('error', message)
 		})
 
 		this.socket.on('replicant:operations', async (data) => {
