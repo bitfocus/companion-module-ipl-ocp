@@ -37,6 +37,9 @@ export class IPLOCInstance extends InstanceBase<IPLOCModuleConfig> {
 	public nextSelectedMode: string = UNKNOWN_MODE_NAME
 	public nextSelectedStage: string = UNKNOWN_STAGE_NAME
 
+	private automationActionTimeCheckTimeout: NodeJS.Timeout | undefined = undefined
+	public automationActionAdvancingSoon = false
+
 	public async init(config: IPLOCModuleConfig): Promise<void> {
 		this.setVariableDefinitions([
 			{
@@ -197,6 +200,29 @@ export class IPLOCInstance extends InstanceBase<IPLOCModuleConfig> {
 				this.checkFeedbacks(IPLOCFeedback.show_next_match_on_stream)
 				break
 			case 'gameAutomationData':
+				this.checkFeedbacks(IPLOCFeedback.automation_action_advancing_soon)
+
+				const executionTimeMillis = this.socket.replicants[DASHBOARD_BUNDLE_NAME].gameAutomationData?.nextTaskForAction?.executionTimeMillis
+				const now = new Date().getTime()
+				clearTimeout(this.automationActionTimeCheckTimeout)
+				if (executionTimeMillis != null && now < executionTimeMillis) {
+					if (executionTimeMillis - now > 1000) {
+						this.automationActionAdvancingSoon = false
+
+						this.automationActionTimeCheckTimeout = setTimeout(() => {
+							this.automationActionAdvancingSoon = true
+							this.checkFeedbacks(IPLOCFeedback.automation_action_advancing_soon)
+						}, executionTimeMillis - now - 1000)
+					} else {
+						this.automationActionAdvancingSoon = true
+					}
+				} else {
+					this.automationActionAdvancingSoon = false
+				}
+
+				this.checkFeedbacks(IPLOCFeedback.automation_action_advancing_soon)
+				this.checkFeedbacks(IPLOCFeedback.automation_action_state)
+				break
 			case 'obsState':
 			case 'obsConfig':
 				this.checkFeedbacks(IPLOCFeedback.automation_action_state)

@@ -12,6 +12,7 @@ export enum IPLOCFeedback {
 	show_next_match_on_stream = 'show_next_match_on_stream',
 	break_scene_visibility = 'break_scene_visibility',
 	automation_action_state = 'automation_action_state',
+	automation_action_advancing_soon = 'automation_action_advancing_soon',
 	next_selected_stage = 'next_selected_stage',
 	next_selected_mode = 'next_selected_mode',
 	colors_swapped = 'colors_swapped',
@@ -197,6 +198,20 @@ export function getFeedbackDefinitions(
 						  }
 				}
 			},
+		},
+
+		[IPLOCFeedback.automation_action_advancing_soon]: {
+			type: 'boolean',
+			name: 'Automation action advancing soon',
+			description: 'If the ongoing automation action is about to perform a task (e.g. switching the scene or showing the scoreboard)',
+			defaultStyle: {
+				bgcolor: combineRgb(255, 255, 0),
+				color: combineRgb(0, 0, 0)
+			},
+			options: [],
+			callback: () => {
+				return self.automationActionAdvancingSoon
+			}
 		},
 
 		[IPLOCFeedback.next_selected_mode]: {
