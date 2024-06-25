@@ -202,6 +202,10 @@ export class IPLOCInstance extends InstanceBase<IPLOCModuleConfig> {
 
 				this.setActionDefinitions(getActionDefinitions(this, this.socket))
 				this.setFeedbackDefinitions(getFeedbackDefinitions(this, this.socket))
+				break
+			case 'swapColorsInternally':
+				this.checkFeedbacks(IPLOCFeedback.colors_swapped)
+				break
 		}
 	}
 }

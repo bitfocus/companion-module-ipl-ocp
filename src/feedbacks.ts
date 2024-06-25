@@ -14,6 +14,7 @@ export enum IPLOCFeedback {
 	automation_action_state = 'automation_action_state',
 	next_selected_stage = 'next_selected_stage',
 	next_selected_mode = 'next_selected_mode',
+	colors_swapped = 'colors_swapped',
 }
 
 export function getFeedbackDefinitions(
@@ -241,5 +242,19 @@ export function getFeedbackDefinitions(
 				return self.nextSelectedStage === feedback.options.stage
 			},
 		},
+
+		[IPLOCFeedback.colors_swapped]: {
+			type: 'boolean',
+			name: 'Colors swapped',
+			description: 'If colors have been swapped',
+			defaultStyle: {
+				bgcolor: combineRgb(255, 0, 0),
+				color: combineRgb(255, 255, 255),
+			},
+			options: [],
+			callback: () => {
+				return socket.replicants[DASHBOARD_BUNDLE_NAME].swapColorsInternally ?? false
+			},
+		}
 	}
 }
