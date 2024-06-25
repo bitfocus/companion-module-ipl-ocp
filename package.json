@@ -20,7 +20,7 @@
 		"tslib": "^2.4.1"
 	},
 	"devDependencies": {
-		"@companion-module/tools": "^1.4.1",
+		"@companion-module/tools": "^1.5.1",
 		"@nodecg/types": "~2.1.12",
 		"@types/luxon": "^2.3.2",
 		"@types/node": "^18.18.4",
