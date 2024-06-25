@@ -160,6 +160,9 @@ export class NodeCGConnector<
 			this.instance.checkFeedbacks(NodeCGConnectorFeedback.nodecg_connection_status)
 			this.instance.log('debug', msg)
 			this.instance.updateStatus(InstanceStatus.Disconnected, msg)
+			if (reason === 'io server disconnect') {
+				this.socket?.connect()
+			}
 		})
 	}
 
