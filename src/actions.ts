@@ -385,7 +385,7 @@ export function getActionDefinitions(
 				if (socket.replicants[DASHBOARD_BUNDLE_NAME].gameAutomationData?.actionInProgress !== 'NONE') {
 					socket.sendMessage('cancelAutomationAction', DASHBOARD_BUNDLE_NAME)
 				}
-			}
+			},
 		},
 		set_next_selected_mode: {
 			name: 'Select the next mode',

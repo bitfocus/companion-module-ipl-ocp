@@ -72,12 +72,12 @@ export class IPLOCInstance extends InstanceBase<IPLOCModuleConfig> {
 			},
 			{
 				name: 'Name of the team that won the most recent game',
-				variableId: 'last_winner_name'
+				variableId: 'last_winner_name',
 			},
 			{
 				name: 'Name of the team that lost the most recent game',
-				variableId: 'last_loser_name'
-			}
+				variableId: 'last_loser_name',
+			},
 		])
 		this.setPresetDefinitions({
 			nextStage: {
@@ -165,8 +165,8 @@ export class IPLOCInstance extends InstanceBase<IPLOCModuleConfig> {
 			case 'activeRound':
 				if (!isEmpty(this.socket.replicants[DASHBOARD_BUNDLE_NAME]['activeRound'])) {
 					const games = this.socket.replicants[DASHBOARD_BUNDLE_NAME].activeRound?.games
-					const nextGame = games?.find(game => game.winner === 'none')
-					const lastGame = games?.findLast(game => game.winner !== 'none')
+					const nextGame = games?.find((game) => game.winner === 'none')
+					const lastGame = games?.findLast((game) => game.winner !== 'none')
 					const teamAName = this.socket.replicants[DASHBOARD_BUNDLE_NAME]['activeRound']?.teamA.name
 					const teamBName = this.socket.replicants[DASHBOARD_BUNDLE_NAME]['activeRound']?.teamB.name
 
@@ -179,7 +179,7 @@ export class IPLOCInstance extends InstanceBase<IPLOCModuleConfig> {
 						next_mode: nextGame?.mode == null ? '??' : modeNameToShortModeName[nextGame.mode] ?? nextGame.mode,
 						next_stage: nextGame?.stage == null ? '???' : stageNameToShortStageName[nextGame.stage] ?? nextGame.stage,
 						last_winner_name: lastGame == null ? '--' : lastGame.winner === 'alpha' ? teamAName : teamBName,
-						last_loser_name: lastGame == null ? '--' : lastGame.winner === 'alpha' ? teamBName : teamAName
+						last_loser_name: lastGame == null ? '--' : lastGame.winner === 'alpha' ? teamBName : teamAName,
 					})
 				}
 				this.checkFeedbacks(IPLOCFeedback.team_colour)
@@ -202,7 +202,8 @@ export class IPLOCInstance extends InstanceBase<IPLOCModuleConfig> {
 			case 'gameAutomationData':
 				this.checkFeedbacks(IPLOCFeedback.automation_action_advancing_soon)
 
-				const executionTimeMillis = this.socket.replicants[DASHBOARD_BUNDLE_NAME].gameAutomationData?.nextTaskForAction?.executionTimeMillis
+				const executionTimeMillis =
+					this.socket.replicants[DASHBOARD_BUNDLE_NAME].gameAutomationData?.nextTaskForAction?.executionTimeMillis
 				const now = new Date().getTime()
 				clearTimeout(this.automationActionTimeCheckTimeout)
 				if (executionTimeMillis != null && now < executionTimeMillis) {

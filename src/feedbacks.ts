@@ -203,15 +203,16 @@ export function getFeedbackDefinitions(
 		[IPLOCFeedback.automation_action_advancing_soon]: {
 			type: 'boolean',
 			name: 'Automation action advancing soon',
-			description: 'If the ongoing automation action is about to perform a task (e.g. switching the scene or showing the scoreboard)',
+			description:
+				'If the ongoing automation action is about to perform a task (e.g. switching the scene or showing the scoreboard)',
 			defaultStyle: {
 				bgcolor: combineRgb(255, 255, 0),
-				color: combineRgb(0, 0, 0)
+				color: combineRgb(0, 0, 0),
 			},
 			options: [],
 			callback: () => {
 				return self.automationActionAdvancingSoon
-			}
+			},
 		},
 
 		[IPLOCFeedback.next_selected_mode]: {
@@ -270,6 +271,6 @@ export function getFeedbackDefinitions(
 			callback: () => {
 				return socket.replicants[DASHBOARD_BUNDLE_NAME].swapColorsInternally ?? false
 			},
-		}
+		},
 	}
 }
