@@ -67,6 +67,14 @@ export class IPLOCInstance extends InstanceBase<IPLOCModuleConfig> {
 				name: 'The next stage to be played',
 				variableId: 'next_stage',
 			},
+			{
+				name: 'Name of the team that won the most recent game',
+				variableId: 'last_winner_name'
+			},
+			{
+				name: 'Name of the team that lost the most recent game',
+				variableId: 'last_loser_name'
+			}
 		])
 		this.setPresetDefinitions({
 			nextStage: {
@@ -153,18 +161,22 @@ export class IPLOCInstance extends InstanceBase<IPLOCModuleConfig> {
 		switch (replicantName) {
 			case 'activeRound':
 				if (!isEmpty(this.socket.replicants[DASHBOARD_BUNDLE_NAME]['activeRound'])) {
-					const nextGame = this.socket.replicants[DASHBOARD_BUNDLE_NAME].activeRound?.games.find(
-						(game) => game.winner === 'none'
-					)
+					const games = this.socket.replicants[DASHBOARD_BUNDLE_NAME].activeRound?.games
+					const nextGame = games?.find(game => game.winner === 'none')
+					const lastGame = games?.findLast(game => game.winner !== 'none')
+					const teamAName = this.socket.replicants[DASHBOARD_BUNDLE_NAME]['activeRound']?.teamA.name
+					const teamBName = this.socket.replicants[DASHBOARD_BUNDLE_NAME]['activeRound']?.teamB.name
 
 					this.setVariableValues({
 						teams_alpha_score: String(this.socket.replicants[DASHBOARD_BUNDLE_NAME]['activeRound']?.teamA.score),
 						teams_bravo_score: String(this.socket.replicants[DASHBOARD_BUNDLE_NAME]['activeRound']?.teamB.score),
-						teams_alpha_name: this.socket.replicants[DASHBOARD_BUNDLE_NAME]['activeRound']?.teamA.name,
-						teams_bravo_name: this.socket.replicants[DASHBOARD_BUNDLE_NAME]['activeRound']?.teamB.name,
+						teams_alpha_name: teamAName,
+						teams_bravo_name: teamBName,
 						games_in_set: String(this.socket.replicants[DASHBOARD_BUNDLE_NAME]['activeRound']?.games.length),
 						next_mode: nextGame?.mode == null ? '??' : modeNameToShortModeName[nextGame.mode] ?? nextGame.mode,
 						next_stage: nextGame?.stage == null ? '???' : stageNameToShortStageName[nextGame.stage] ?? nextGame.stage,
+						last_winner_name: lastGame == null ? '--' : lastGame.winner === 'alpha' ? teamAName : teamBName,
+						last_loser_name: lastGame == null ? '--' : lastGame.winner === 'alpha' ? teamBName : teamAName
 					})
 				}
 				this.checkFeedbacks(IPLOCFeedback.team_colour)
